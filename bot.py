@@ -4,24 +4,14 @@ import psycopg2
 from discord.ext import commands
 from dotenv import load_dotenv
 
-
-
-
-
-
-
-
-#leer el token
+# Leer el token
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
-
-
 
 intents = discord.Intents.default()
 intents.typing = False
 intents.presences = False
 intents.message_content = True
-
 
 bot = commands.Bot(command_prefix='/', intents=intents)
 
@@ -34,11 +24,6 @@ async def on_ready():
 async def clear(ctx):
     response = 'Espero que no estés usando basura, enseguida se te asignarán los puntos.' 
     await ctx.send(response)
-
-
-
-
-
 
 @bot.command()
 async def tabla(ctx):
@@ -88,8 +73,6 @@ async def tabla(ctx):
     await ctx.send(embed=first_response)
     await ctx.send(embed=second_response)
 
-
-
 @bot.command()
 async def players(ctx):
     # Establecer la conexión a la base de datos
@@ -114,11 +97,5 @@ async def players(ctx):
     player_list = '\n'.join([f'{row[0]} - Puntos: {row[1]}' for row in results])
     embed = discord.Embed(title="Lista de jugadores", description=player_list, color=discord.Color.blue())
     await ctx.send(embed=embed)
-
-
-
-
-
-
 
 bot.run(TOKEN)
