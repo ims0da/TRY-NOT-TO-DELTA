@@ -32,7 +32,7 @@ async def on_ready():
 
 @bot.command()
 async def clear(ctx):
-    response = 'Espero que no estés usando basura, enseguida se te asignarán los puntos.'
+    response = 'Espero que no estés usando basura, enseguida se te asignarán los puntos. @AdoS#6041'
     await ctx.send(response)
 
 
