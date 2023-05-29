@@ -90,9 +90,30 @@ async def TABLA(ctx):
 
 
 
+@bot.command()
+async def players(ctx):
+    # Establecer la conexión a la base de datos
+    conn = psycopg2.connect(
+        host="localhost",
+        port="5432",
+        database="TRY_NOT_TO_DELTA",
+        user="postgres",
+        password="admin"
+    )
+
+    cursor = conn.cursor()
+    query = "SELECT NOMBRE, PUNTOS  FROM public.players"
+    cursor.execute(query)
+    results = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
 
 
-
+    # Formatear los resultados como un mensaje de Discord
+    player_list = '\n'.join([f'{row[0]} - Puntos: {row[1]}' for row in results])
+    embed = discord.Embed(title="Lista de jugadores", description=player_list, color=discord.Color.blue())
+    await ctx.send(embed=embed)
 
 
 
