@@ -32,7 +32,7 @@ async def on_ready():
 
 @bot.command()
 async def clear(ctx):
-    response = 'Espero que no estés usando basura, enseguida se te asignarán los puntos. @AdoS#6041'
+    response = 'Espero que no estés usando basura, enseguida se te asignarán los puntos.' 
     await ctx.send(response)
 
 
@@ -41,7 +41,7 @@ async def clear(ctx):
 
 
 @bot.command()
-async def TABLA(ctx):
+async def tabla(ctx):
     # Establecer la conexión a la base de datos
     conn = psycopg2.connect(
         host="localhost",
