@@ -15,6 +15,7 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix='/', intents=intents)
 
+<<<<<<< HEAD
 @bot.event
 async def on_ready():
     print(f'{bot.user.name} has connected to Discord!')
@@ -27,6 +28,10 @@ async def clear(ctx):
 
 @bot.command()
 async def tabla(ctx):
+=======
+# Consulta a base de datos
+def query(string: str):
+>>>>>>> 125f09ae1a10bf72b10309373eda9e9e49953a69
     # Establecer la conexión a la base de datos
     conn = psycopg2.connect(
         host="localhost",
@@ -46,6 +51,22 @@ async def tabla(ctx):
     cursor.close()
     conn.close()
 
+    # Devolver el resultado
+    return results
+
+@bot.event
+async def on_ready():
+    print(f'{bot.user.name} has connected to Discord!')
+
+@bot.command()
+async def clear(ctx):
+    response = 'Espero que no estés usando basura, enseguida se te asignarán los puntos.' 
+    await ctx.send(response)
+
+@bot.command()
+async def tabla(ctx):
+    results = query("SELECT * FROM public.tntd")
+    
     # Dividir los resultados en dos partes
     half = len(results) // 2
     first_half = results[:half]
@@ -75,23 +96,7 @@ async def tabla(ctx):
 
 @bot.command()
 async def players(ctx):
-    # Establecer la conexión a la base de datos
-    conn = psycopg2.connect(
-        host="localhost",
-        port="5432",
-        database="TRY_NOT_TO_DELTA",
-        user="postgres",
-        password="admin"
-    )
-
-    cursor = conn.cursor()
-    query = "SELECT NOMBRE, PUNTOS  FROM public.players"
-    cursor.execute(query)
-    results = cursor.fetchall()
-
-    cursor.close()
-    conn.close()
-
+    results = query("SELECT NOMBRE, PUNTOS FROM public.players")
 
     # Formatear los resultados como un mensaje de Discord
     player_list = '\n'.join([f'{row[0]} - Puntos: {row[1]}' for row in results])
