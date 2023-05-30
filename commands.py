@@ -146,7 +146,7 @@ class Commands:
                 )
 
             await interaction.response.send_message(embed=embed,
-                                                    ephemeral=True)
+                                                    )
     
         @self.bot.tree.command(name="requestmap")
         async def requestmap(interaction: discord.Interaction, nombre:str, puntos:int, link:str, diff:str, mods:str, clear:str):
