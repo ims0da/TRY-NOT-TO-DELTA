@@ -49,6 +49,16 @@ class Commands:
         # Devolver el resultado
         return results
 
+    def get_players(self):
+        return self.query_db("""
+                    SELECT discord_id, user_name, sum(map.points) total_points
+                    FROM
+                     PLAYERS
+                     LEFT JOIN ACHIEVEMENT ON ACHIEVEMENT.player_id = PLAYERS.discord_id
+                     LEFT JOIN MAP ON ACHIEVEMENT.map_hash = MAP.map_hash
+
+                    GROUP BY user_name
+                    """)
     def start_commands(self):
         """Inicializa los comandos"""
 
@@ -77,7 +87,7 @@ class Commands:
             self.start_db_connection()
 
             # Hacer consulta SQL
-            results = self.query("SELECT * FROM public.tntd")
+            results = self.query_db("SELECT * FROM public.tntd")
 
             # Dividir los resultados en dos partes
             half = len(results) // 2
@@ -111,11 +121,11 @@ class Commands:
         @self.bot.tree.command(name="players")
         async def players(interaction: discord.Interaction):
             # Hacer consulta SQL
-            results = self.query("SELECT NOMBRE, PUNTOS  FROM public.players")
+            results = self.get_players()
 
             # Formatear los resultados como un mensaje de Discord
             player_list = '\n'.join([
-                f'{row[0]} - Puntos: {row[1]}' for row in results
+                f'{row[1]} - Puntos: {row[2]}' for row in results
             ])
             embed = discord.Embed(
                 title="Lista de jugadores",
