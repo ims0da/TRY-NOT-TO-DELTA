@@ -35,6 +35,19 @@ class Commands:
         # Devolver el resultado
         return results
     
+    def insert(self, string: str): # <- este es lo mismo que el metodo query de arriba, solo que cuando quieres insertar, modificar o eliminar, no puedes hacer un fetch.
+        self.start_db_connection() # <- por eso no hay un return, porque no hay nada que devolver, solo se ejecuta la consulta y ya, es digamos "interno"
+
+        cursor = self.conn.cursor()
+        cursor.execute(string)
+
+        # Si la consulta es una operación de modificación (como INSERT, UPDATE o DELETE),
+        # puedes realizar un commit en la conexión
+        self.conn.commit()
+
+        cursor.close()
+        self.conn.close()
+    
     def start_commands(self):
         """Inicializa los comandos"""
         @self.bot.event
@@ -112,3 +125,38 @@ class Commands:
                 )
             await interaction.response.send_message(embed=embed,
                                                     ephemeral=True)
+    
+        @self.bot.tree.command(name="requestmap")
+        async def requestmap(interaction: discord.Interaction, nombre:str, puntos:int, link:str, diff:str, mods:str, clear:str):
+            id_canal_validacion = 1113157312723550339
+            channel = self.bot.get_channel(id_canal_validacion)
+
+            message_content = f"Nombre: {nombre}\nPuntos: {puntos}\nLink: {link}\nDiff: {diff}\nMods: {mods}\nClear: {clear}"
+            await channel.send(message_content)
+
+            embed = discord.Embed(
+                            title="Tu mapa ha sido enviado a la cola de validación",
+                            description="Se paciente, que no se cobra por esto :moyai:",
+                            color=discord.Color.green()
+                            )
+            await interaction.response.send_message(embed=embed,
+                                                    ephemeral=True)
+        
+        @self.bot.event
+        async def on_raw_reaction_add(payload):
+            canal_id = 1113157312723550339
+            if payload.channel_id == canal_id:
+                channel = self.bot.get_channel(payload.channel_id)
+                message = await channel.fetch_message(payload.message_id)
+                content = message.content.split("\n")
+                nombre = content[0].split(": ")[1]
+                puntos = int(content[1].split(": ")[1])
+                link = content[2].split(": ")[1]
+                diff = content[3].split(": ")[1]
+                mods = content[4].split(": ")[1]
+                clear = content[5].split(": ")[1]
+
+                self.start_db_connection()
+                self.insert("INSERT INTO public.tntd (nombre, puntos, link, diff, mods, clear) VALUES ('{}', {}, '{}', '{}', '{}', '{}')".format(nombre, puntos, link, diff, mods, clear))
+                
+                await message.delete()
