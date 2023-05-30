@@ -2,9 +2,10 @@ import discord
 from discord.ext import commands
 from commands import Commands
 from dotenv import load_dotenv
-# Leer el token
 
-TOKEN = "DISCORD_TOKEN"
+# Leer el token
+load_dotenv()
+TOKEN = os.getenv("DISCORD_TOKEN")
 
 # Cargar los comandos de la clase Commands
 # Si es necesario añadir comandos, añadirlos a la clase Commands
