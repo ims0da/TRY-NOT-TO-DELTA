@@ -111,4 +111,4 @@ class Commands:
                 color=discord.Color.blue()
                 )
             await interaction.response.send_message(embed=embed,
-                                                    ephemeral=True)
+                                                    )
