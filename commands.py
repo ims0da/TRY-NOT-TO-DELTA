@@ -7,17 +7,34 @@ class Commands:
         self.bot = bot
         self.conn = None
         self.start_commands()
-
+    
     def start_db_connection(self):
         """Inicializa la conexión a la base de datos"""
         self.conn = psycopg2.connect(
-                host="localhost",
-                port="5432",
-                database="TRY_NOT_TO_DELTA",
-                user="postgres",
-                password="admin"
-            )
+            host="localhost",
+            port="5432",
+            database="TRY_NOT_TO_DELTA",
+            user="postgres",
+            password="admin"
+       )
+    
+    # Consulta a base de datos
+    def query(self, string: str):
+        # Iniciar conexión a base de datos
+        self.start_db_connection()
 
+        # Crear una consulta SQL para seleccionar toda la tabla
+        cursor = self.conn.cursor()
+        cursor.execute(string)
+        results = cursor.fetchall()
+
+        # Cerrar el cursor y la conexión
+        cursor.close()
+        self.conn.close()
+
+        # Devolver el resultado
+        return results
+    
     def start_commands(self):
         """Inicializa los comandos"""
         @self.bot.event
@@ -44,15 +61,8 @@ class Commands:
             # Iniciar conexión a base de datos
             self.start_db_connection()
 
-            # Crear una consulta SQL para seleccionar toda la tabla
-            cursor = self.conn.cursor()
-            query = "SELECT * FROM public.tntd"
-            cursor.execute(query)
-            results = cursor.fetchall()
-
-            # Cerrar el cursor y la conexión
-            cursor.close()
-            self.conn.close()
+            # Hacer consulta SQL
+            results = self.query("SELECT * FROM public.tntd")
 
             # Dividir los resultados en dos partes
             half = len(results) // 2
@@ -88,15 +98,8 @@ class Commands:
             # Establecer la conexión a la base de datos
             self.start_db_connection()
 
-            # Consula SQL
-            cursor = self.conn.cursor()
-            query = "SELECT NOMBRE, PUNTOS  FROM public.players"
-            cursor.execute(query)
-            results = cursor.fetchall()
-
-            # Cerrar conexiones
-            cursor.close()
-            self.conn.close()
+            # Hacer consulta SQL
+            results = self.query("SELECT NOMBRE, PUNTOS  FROM public.players")
 
             # Formatear los resultados como un mensaje de Discord
             player_list = '\n'.join([
