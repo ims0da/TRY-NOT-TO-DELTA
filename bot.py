@@ -4,7 +4,7 @@ from discord.ext import commands
 from commands import Commands
 
 # Leer el token
-TOKEN = "MTExMjc0NDk0MTk0NTM2MDQ3NQ.Gnmdf2.ty0rPhsNLWc1SDWwzp_E9UL9ru9UhIHKxKLVOo"
+TOKEN = "MTExMzE0NDMzNzU0MzQ3MTE5Ng.Gwo5Uz.LNIOu1JjPCxhyXja8f0cppZ6Wz6-K7y8dJ0GqU"
 
 # Cargar los comandos de la clase Commands
 # Si es necesario añadir comandos, añadirlos a la clase Commands
