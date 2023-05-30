@@ -183,7 +183,6 @@ class Commands:
                 
                 await message.delete()
 
-            await interaction.response.send_message(embed=embed)
 
 
         @self.bot.tree.command(name="ayuda")
