@@ -55,7 +55,7 @@ class Commands:
 
 
     def get_players(self):
-        return self.query_db("""
+        return self.query("""
                     SELECT user_name, sum(map.points) total_points
                     FROM
                      PLAYERS
@@ -96,7 +96,7 @@ class Commands:
             # el comando players)
 
             # Hacer consulta SQL
-            results = self.query_db("SELECT * FROM public.tntd")
+            results = self.query("SELECT * FROM public.tntd")
 
             half = len(results) // 2
             first_half = results[:half]
@@ -186,7 +186,6 @@ class Commands:
                 mods = content[4].split(": ")[1]
                 clear = content[5].split(": ")[1]
 
-                self.start_db_connection()
                 self.insert("INSERT INTO public.tntd (nombre, puntos, link, diff, mods, clear) VALUES ('{}', {}, '{}', '{}', '{}', '{}')".format(nombre, puntos, link, diff, mods, clear))
 
                 await message.delete()
@@ -200,7 +199,7 @@ class Commands:
 
         @self.bot.tree.command(name="register")
         async def register(interaction: discord.Interaction):
-            self.mod_db(f"""
+            self.insert(f"""
             INSERT OR IGNORE INTO PLAYERS (discord_id,user_name)
             VALUES ({interaction.user.id},'{interaction.user.display_name}');
             """)
