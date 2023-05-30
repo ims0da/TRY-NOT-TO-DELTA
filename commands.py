@@ -1,5 +1,6 @@
 import discord
 import psycopg2
+from tabulate import tabulate
 
 
 class Commands:
@@ -7,7 +8,7 @@ class Commands:
         self.bot = bot
         self.conn = None
         self.start_commands()
-    
+
     def start_db_connection(self):
         """Inicializa la conexión a la base de datos"""
         self.conn = psycopg2.connect(
@@ -16,8 +17,8 @@ class Commands:
             database="TRY_NOT_TO_DELTA",
             user="postgres",
             password="admin"
-       )
-    
+        )
+
     # Consulta a base de datos
     def query(self, string: str):
         # Iniciar conexión a base de datos
@@ -34,13 +35,14 @@ class Commands:
 
         # Devolver el resultado
         return results
-    
+
     def start_commands(self):
         """Inicializa los comandos"""
         @self.bot.event
         async def on_ready():
             print(f'{self.bot.user.name} has connected to Discord!')
             try:
+                print("Sincronizando comandos...")
                 synced = await self.bot.tree.sync()
                 print(f"Synced {len(synced)} command(s)")
             except Exception as e:
@@ -56,15 +58,15 @@ class Commands:
 
         @self.bot.tree.command(name="tabla")
         async def tabla(interaction: discord.Interaction):
-            # FIXME: Estaria bien hacer este codigo mas legible
-            # de algun modo ya que a mi me cuesta entenderlo.
-            # Iniciar conexión a base de datos
-            self.start_db_connection()
+            # TODO: Estaria guay hacer que si esto llega a 4096
+            # caracteres (maximo de los embeds de discord) se
+            # dividiese en diferentes mensajes. (para poder
+            # darle un formato guay con tabulate igual que en
+            # el comando players)
 
             # Hacer consulta SQL
             results = self.query("SELECT * FROM public.tntd")
 
-            # Dividir los resultados en dos partes
             half = len(results) // 2
             first_half = results[:half]
             second_half = results[half:]
@@ -95,20 +97,29 @@ class Commands:
 
         @self.bot.tree.command(name="players")
         async def players(interaction: discord.Interaction):
-            # Establecer la conexión a la base de datos
-            self.start_db_connection()
-
             # Hacer consulta SQL
             results = self.query("SELECT NOMBRE, PUNTOS  FROM public.players")
 
+            # Ordenar los resultados de mayor a menor puntos
+            sorted_results = sorted(
+                results,
+                key=lambda row: row[1],
+                reverse=True
+                )
+
+            # Crear headers de la tabla
+            headers = ['Nombre', 'Puntos']
+
+            # Crear la lista en forma de tabla
+            formatted_player_list = (
+                tabulate(sorted_results, headers, tablefmt='pipe')
+                )
+
             # Formatear los resultados como un mensaje de Discord
-            player_list = '\n'.join([
-                f'{row[0]} - Puntos: {row[1]}' for row in results
-                ])
             embed = discord.Embed(
                 title="Lista de jugadores",
-                description=player_list,
+                description=f'```\n{formatted_player_list}\n```',
                 color=discord.Color.blue()
                 )
-            await interaction.response.send_message(embed=embed,
-                                                    ephemeral=True)
+
+            await interaction.response.send_message(embed=embed)
