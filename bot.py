@@ -1,8 +1,8 @@
-import os
 import discord
 from discord.ext import commands
 from commands import Commands
 from dotenv import load_dotenv
+
 # Leer el token
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -13,6 +13,6 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 # explico
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix='/', intents=intents)
-commands = Commands(bot)  
+commands = Commands(bot)
 
 bot.run(TOKEN)
