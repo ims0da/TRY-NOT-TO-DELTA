@@ -3,6 +3,15 @@ import psycopg2
 from tabulate import tabulate
 
 
+ayuda_comandos = {
+    "/players" : "Muestra la leaderboard con los puntos actuales.",
+    "/tabla" : "Muestra la base de datos de mapas con el link del mapa, el nombre, la diff name, el mod y el clear.",
+    "/clear"  : "Has hecho un clear a un mapa y requieres de tus puntos",
+    "/ayuda" : "Muestra este comando",
+}
+
+
+
 class Commands:
     def __init__(self, bot) -> None:
         self.bot = bot
@@ -121,5 +130,11 @@ class Commands:
                 description=f'```\n{formatted_player_list}\n```',
                 color=discord.Color.blue()
                 )
-
             await interaction.response.send_message(embed=embed)
+
+
+        @self.bot.tree.command(name="ayuda")
+        async def ayuda(interaction: discord.Interaction):
+            msg = '\n'.join([f"{key}: {value}" for key, value in ayuda_comandos.items()])
+            await interaction.response.send_message(msg)
+
