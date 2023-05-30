@@ -1,91 +1,17 @@
 import os
 import discord
-import psycopg2
 from discord.ext import commands
-from dotenv import load_dotenv
+from commands import Commands
 
 # Leer el token
-load_dotenv()
-TOKEN = os.getenv('DISCORD_TOKEN')
+TOKEN = "MTExMjc0NDk0MTk0NTM2MDQ3NQ.Gnmdf2.ty0rPhsNLWc1SDWwzp_E9UL9ru9UhIHKxKLVOo"
 
-intents = discord.Intents.default()
-intents.typing = False
-intents.presences = False
-intents.message_content = True
-
+# Cargar los comandos de la clase Commands
+# Si es necesario añadir comandos, añadirlos a la clase Commands
+# si tienes alguna duda con mi codigo hablame al md y te lo
+# explico
+intents = discord.Intents.all()
 bot = commands.Bot(command_prefix='/', intents=intents)
-
-# Consulta a base de datos
-def query(string: str):
-    # Establecer la conexión a la base de datos
-    conn = psycopg2.connect(
-        host="localhost",
-        port="5432",
-        database="TRY_NOT_TO_DELTA",
-        user="postgres",
-        password="admin"
-    )
-
-    # Crear una consulta SQL para seleccionar toda la tabla
-    cursor = conn.cursor()
-    query = "SELECT * FROM public.tntd"
-    cursor.execute(query)
-    results = cursor.fetchall()
-
-    # Cerrar el cursor y la conexión
-    cursor.close()
-    conn.close()
-
-    # Devolver el resultado
-    return results
-
-@bot.event
-async def on_ready():
-    print(f'{bot.user.name} has connected to Discord!')
-
-@bot.command()
-async def clear(ctx):
-    response = 'Espero que no estés usando basura, enseguida se te asignarán los puntos.' 
-    await ctx.send(response)
-
-@bot.command()
-async def tabla(ctx):
-    results = query("SELECT * FROM public.tntd")
-    
-    # Dividir los resultados en dos partes
-    half = len(results) // 2
-    first_half = results[:half]
-    second_half = results[half:]
-
-    # Crear la descripción del primer mensaje
-    first_half_table = "\n".join([f"{row}" for row in first_half])
-
-    # Crear el primer mensaje
-    first_response = discord.Embed(
-        title="Tabla (Parte 1)",
-        description=first_half_table
-    )
-
-    # Crear la descripción del segundo mensaje
-    second_half_table = "\n".join([f"{row}" for row in second_half])
-
-    # Crear el segundo mensaje
-    second_response = discord.Embed(
-        title="Tabla (Parte 2)",
-        description=second_half_table
-    )
-
-    # Enviar los mensajes en Discord
-    await ctx.send(embed=first_response)
-    await ctx.send(embed=second_response)
-
-@bot.command()
-async def players(ctx):
-    results = query("SELECT NOMBRE, PUNTOS FROM public.players")
-
-    # Formatear los resultados como un mensaje de Discord
-    player_list = '\n'.join([f'{row[0]} - Puntos: {row[1]}' for row in results])
-    embed = discord.Embed(title="Lista de jugadores", description=player_list, color=discord.Color.blue())
-    await ctx.send(embed=embed)
+commands = Commands(bot)  
 
 bot.run(TOKEN)
