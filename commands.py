@@ -146,7 +146,7 @@ class Commands:
                 )
 
             await interaction.response.send_message(embed=embed,
-                                                    )
+                                                    ephemeral=True)
     
         @self.bot.tree.command(name="requestmap")
         async def requestmap(interaction: discord.Interaction, nombre:str, puntos:int, link:str, diff:str, mods:str, clear:str):
@@ -162,7 +162,7 @@ class Commands:
                             color=discord.Color.green()
                             )
             await interaction.response.send_message(embed=embed,
-                                                    ephemeral=True)
+                                                )
         
         @self.bot.event
         async def on_raw_reaction_add(payload):
@@ -185,8 +185,20 @@ class Commands:
 
 
 
+        
+
         @self.bot.tree.command(name="ayuda")
         async def ayuda(interaction: discord.Interaction):
+            # Ruta de la imagen que quieres enviar
+            image_path = 'C:/Users/Alejandro/Desktop/BOT_DISCORD/IMG_20230309_161106.jpg'
+
+            
+            # Cargar la imagen como un objeto de archivo discord.File
+            file = discord.File(image_path, filename='IMG_20230309_161106.jpg')
+
+            # Mensaje con el contenido de ayuda
             msg = '\n'.join([f"{key}: {value}" for key, value in ayuda_comandos.items()])
-            await interaction.response.send_message(msg)
+
+            # Enviar el mensaje con la imagen adjunta
+            await interaction.response.send_message(content=msg, file=file)
 
