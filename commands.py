@@ -4,12 +4,11 @@ from tabulate import tabulate
 
 
 ayuda_comandos = {
-    "/players" : "Muestra la leaderboard con los puntos actuales.",
-    "/tabla" : "Muestra la base de datos de mapas con el link del mapa, el nombre, la diff name, el mod y el clear.",
-    "/clear"  : "Has hecho un clear a un mapa y requieres de tus puntos",
-    "/ayuda" : "Muestra este comando",
+    "/players": "Muestra la leaderboard con los puntos actuales.",
+    "/tabla": "Muestra la base de datos de mapas con el link del mapa, el nombre, la diff name, el mod y el clear.",
+    "/clear": "Has hecho un clear a un mapa y requieres de tus puntos",
+    "/ayuda": "Muestra este comando",
 }
-
 
 
 class Commands:
@@ -45,9 +44,8 @@ class Commands:
         # Devolver el resultado
         return results
 
-    
-    def insert(self, string: str): # <- este es lo mismo que el metodo query de arriba, solo que cuando quieres insertar, modificar o eliminar, no puedes hacer un fetch.
-        self.start_db_connection() # <- por eso no hay un return, porque no hay nada que devolver, solo se ejecuta la consulta y ya, es digamos "interno"
+    def insert(self, string: str):  # <- este es lo mismo que el metodo query de arriba, solo que cuando quieres insertar, modificar o eliminar, no puedes hacer un fetch.
+        self.start_db_connection()  # <- por eso no hay un return, porque no hay nada que devolver, solo se ejecuta la consulta y ya, es digamos "interno"
 
         cursor = self.conn.cursor()
         cursor.execute(string)
@@ -70,6 +68,18 @@ class Commands:
                 print(f"Synced {len(synced)} command(s)")
             except Exception as e:
                 print(e)
+
+        @self.bot.event
+        async def on_member_join(member):  # No se si funciona porque discord es un mierdolo y me ha dicho q he excedido el numero maximo de requests a mi bot :D
+            welcome_chann_id = 1112809557396299777
+            welcome_chann = self.bot.get_channel(welcome_chann_id)
+
+            msg = (
+                f'Bienvenido/a {member.mention} a TRY NOT TO DELTA! '
+                f'Esperemos que te lo pases bien por aquí!'
+            )
+
+            await welcome_chann.send(msg)
 
         @self.bot.tree.command(name="clear")
         async def clear(interaction: discord.Interaction):
@@ -145,9 +155,8 @@ class Commands:
                 color=discord.Color.blue()
                 )
 
-            await interaction.response.send_message(embed=embed,
-                                                    ephemeral=True)
-    
+            await interaction.response.send_message(embed=embed)
+
         @self.bot.tree.command(name="requestmap")
         async def requestmap(interaction: discord.Interaction, nombre:str, puntos:int, link:str, diff:str, mods:str, clear:str):
             id_canal_validacion = 1113157312723550339
@@ -162,8 +171,8 @@ class Commands:
                             color=discord.Color.green()
                             )
             await interaction.response.send_message(embed=embed,
-                                                )
-        
+                                                    ephemeral=True)
+            
         @self.bot.event
         async def on_raw_reaction_add(payload):
             canal_id = 1113157312723550339
@@ -180,19 +189,14 @@ class Commands:
 
                 self.start_db_connection()
                 self.insert("INSERT INTO public.tntd (nombre, puntos, link, diff, mods, clear) VALUES ('{}', {}, '{}', '{}', '{}', '{}')".format(nombre, puntos, link, diff, mods, clear))
-                
+
                 await message.delete()
-
-
-
-        
 
         @self.bot.tree.command(name="ayuda")
         async def ayuda(interaction: discord.Interaction):
             # Ruta de la imagen que quieres enviar
             image_path = 'C:/Users/Alejandro/Desktop/BOT_DISCORD/IMG_20230309_161106.jpg'
 
-            
             # Cargar la imagen como un objeto de archivo discord.File
             file = discord.File(image_path, filename='IMG_20230309_161106.jpg')
 
@@ -202,3 +206,5 @@ class Commands:
             # Enviar el mensaje con la imagen adjunta
             await interaction.response.send_message(content=msg, file=file)
 
+            # Enviar el mensaje con la imagen adjunta
+            await interaction.response.send_message(content=msg, file=file)
