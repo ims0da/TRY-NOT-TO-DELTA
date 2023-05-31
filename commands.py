@@ -2,18 +2,18 @@ import discord
 import psycopg2
 from tabulate import tabulate
 import math
-
+import asyncio
 
 ayuda_comandos = {
-    "/players" : "Muestra la leaderboard con los puntos actuales.",
-    "/tabla" : "Muestra la base de datos de mapas con el link del mapa, el nombre, la diff name, el mod y el clear.",
-    "/clear"  : "Has hecho un clear a un mapa y requieres de tus puntos",
-    "/ayuda" : "Muestra este comando",
-    "/requestmap" : "Envia un mapa a la cola de validación, te pedirá que insertes el nombre, los puntos, el link, la diff name, los mods y el clear. :)"
+    "/players": "Muestra la leaderboard con los puntos actuales.",
+    "/tabla": "Muestra la base de datos de mapas con el link del mapa, el nombre, la diff name, el mod y el clear.",
+    "/clear": "Has hecho un clear a un mapa y requieres de tus puntos",
+    "/ayuda": "Muestra este comando",
+    "/requestmap": "Pide un mapa para que sea añadido a la base de datos, te pedirá el link del mapa, el nombre, la diff name, el mod y el clear.",
 }
 
 
-class Commands:
+class Commands():
     def __init__(self, bot) -> None:
         self.bot = bot
         self.conn = None
@@ -93,39 +93,73 @@ class Commands:
 
         @self.bot.tree.command(name="tabla")
         async def tabla(interaction: discord.Interaction):
+            # TODO: Estaria guay hacer que si esto llega a 4096
+            # caracteres (maximo de los embeds de discord) se
+            # dividiese en diferentes mensajes. (para poder
+            # darle un formato guay con tabulate igual que en
+            # el comando players)
+
             # Hacer consulta SQL
             results = self.query("SELECT * FROM public.tntd ORDER BY id")
             
             # Obtener los encabezados de las columnas de la tabla
-            column_headers = ["puntos","_", "mods", "clear"]
             # Crear una lista de filas para la tabla
             table_rows = []
             for row in results:
                 table_rows.append(row)
 
              # Dividir la tabla en páginas
-            rows_per_page = 15  # Número de filas por página
+            rows_per_page = 10  # Número de filas por página
             num_pages = math.ceil(len(table_rows) / rows_per_page)
 
+
+            embed_list = []
             for page_num in range(num_pages):
                 start_index = page_num * rows_per_page
                 end_index = start_index + rows_per_page
                 page_rows = table_rows[start_index:end_index]
+                table_str = "```"
+                table_str += tabulate(page_rows, headers=[], tablefmt="plain", showindex=False, colalign=("left", "left", "left", "left", "left",))
+                table_str += "\n\n"  # Agregar una línea en blanco entre filas
+                table_str = table_str.replace("\n", "\n\n")  # Agregar una línea en blanco después de cada fila
+                table_str += "```"
+                page_embed = discord.Embed(
+                title=f"Tabla (Página {page_num + 1}/{num_pages})",
+                description=table_str
+                )
+                embed_list.append(page_embed)
 
-            # Formatear la tabla de manera adecuada
-           # Formatear la tabla con espacios entre elementos y filas
-            table_str = "```"
-            table_str += tabulate(page_rows, headers=column_headers, tablefmt="plain", showindex=False, colalign=("left", "left", "left", "left", "left",))
-            table_str += "\n\n"  # Agregar una línea en blanco entre filas
-            table_str = table_str.replace("\n", "\n\n")  # Agregar una línea en blanco después de cada fila
-            table_str += "```"
-            # Crear el embed de Discord para la página
-            page_embed = discord.Embed(
-            title=f"Tabla (Página {page_num + 1}/{num_pages})",
-            description=table_str
-            )
-             # Enviar el mensaje como respuesta al comando
-            await interaction.response.send_message(embed=page_embed, ephemeral=True)
+            index = 0
+            message = await interaction.response.send_message(embed=embed_list[index])
+            canal = interaction.channel_id
+
+            message_history = self.bot.get_channel(canal).history(limit=1)
+            last_message = message_history.ag_frame.f_locals.get('self').last_message
+
+            await last_message.add_reaction('⬅️')
+            await last_message.add_reaction('➡️')
+
+            def check(reaction, user):
+                return user == interaction.user and str(reaction.emoji) in ['⬅️', '➡️']
+
+            while True:
+                try:
+                    reaction, _ = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+
+                    if str(reaction.emoji) == '⬅️':
+                        index -= 1
+                        if index < 0:
+                            index = len(embed_list) - 1
+                    elif str(reaction.emoji) == '➡️':
+                        index += 1
+                        if index >= len(embed_list):
+                            index = 0
+
+                    await last_message.edit(embed=embed_list[index])
+                    await last_message.remove_reaction(reaction, interaction.user)
+                except asyncio.TimeoutError:
+                    break
+
 
         @self.bot.tree.command(name="players")
         async def players(interaction: discord.Interaction):
@@ -158,7 +192,7 @@ class Commands:
 
         @self.bot.tree.command(name="requestmap")
         async def requestmap(interaction: discord.Interaction, nombre:str, puntos:int, link:str, diff:str, mods:str, clear:str):
-            id_canal_validacion = 1065744326606471178
+            id_canal_validacion = 1053090057801695232
             channel = self.bot.get_channel(id_canal_validacion)
 
             message_content = f"Nombre: {nombre}\nPuntos: {puntos}\nLink: {link}\nDiff: {diff}\nMods: {mods}\nClear: {clear}"
@@ -174,7 +208,7 @@ class Commands:
             
         @self.bot.event
         async def on_raw_reaction_add(payload):
-            canal_id = 1065744326606471178
+            canal_id = 1053090057801695232
             if payload.channel_id == canal_id:
                 channel = self.bot.get_channel(payload.channel_id)
                 message = await channel.fetch_message(payload.message_id)
