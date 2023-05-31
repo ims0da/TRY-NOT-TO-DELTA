@@ -1,6 +1,7 @@
 import discord
 import psycopg2
 from tabulate import tabulate
+import math
 
 
 ayuda_comandos = {
@@ -10,7 +11,6 @@ ayuda_comandos = {
     "/ayuda" : "Muestra este comando",
     "/requestmap" : "Envia un mapa a la cola de validación, te pedirá que insertes el nombre, los puntos, el link, la diff name, los mods y el clear. :)"
 }
-
 
 
 class Commands:
@@ -46,9 +46,8 @@ class Commands:
         # Devolver el resultado
         return results
 
-    
-    def insert(self, string: str): # <- este es lo mismo que el metodo query de arriba, solo que cuando quieres insertar, modificar o eliminar, no puedes hacer un fetch.
-        self.start_db_connection() # <- por eso no hay un return, porque no hay nada que devolver, solo se ejecuta la consulta y ya, es digamos "interno"
+    def insert(self, string: str):  # <- este es lo mismo que el metodo query de arriba, solo que cuando quieres insertar, modificar o eliminar, no puedes hacer un fetch.
+        self.start_db_connection()  # <- por eso no hay un return, porque no hay nada que devolver, solo se ejecuta la consulta y ya, es digamos "interno"
 
         cursor = self.conn.cursor()
         cursor.execute(string)
@@ -72,6 +71,18 @@ class Commands:
             except Exception as e:
                 print(e)
 
+        @self.bot.event
+        async def on_member_join(member):  # No se si funciona porque discord es un mierdolo y me ha dicho q he excedido el numero maximo de requests a mi bot :D
+            welcome_chann_id = 1112809557396299777
+            welcome_chann = self.bot.get_channel(welcome_chann_id)
+
+            msg = (
+                f'Bienvenido/a {member.mention} a TRY NOT TO DELTA! '
+                f'Esperemos que te lo pases bien por aquí!'
+            )
+
+            await welcome_chann.send(msg)
+
         @self.bot.tree.command(name="clear")
         async def clear(interaction: discord.Interaction):
             msg = (
@@ -83,30 +94,38 @@ class Commands:
         @self.bot.tree.command(name="tabla")
         async def tabla(interaction: discord.Interaction):
             # Hacer consulta SQL
-            results = self.query("SELECT * FROM public.tntd")
+            results = self.query("SELECT * FROM public.tntd ORDER BY id")
             
-            # Dividir los resultados en páginas de 10 elementos cada una
-            elementos_por_pagina = 10
-            paginas = [results[i:i+elementos_por_pagina] for i in range(0, len(results), elementos_por_pagina)]
+            # Obtener los encabezados de las columnas de la tabla
+            column_headers = ["puntos","_", "mods", "clear"]
+            # Crear una lista de filas para la tabla
+            table_rows = []
+            for row in results:
+                table_rows.append(row)
 
-            # Crear y enviar los mensajes con las tablas
-            for i, pagina in enumerate(paginas):
-                output_format = {"Puntos" : pagina[i][2], "Nombre" : pagina[i][1],  "Diff Name" : pagina[i][4], "Mods" : pagina[i][5], "Clear" : pagina[i][6], "Link" : pagina[i][3]}
-                # Obtener los nombres de las columnas como encabezados
-                headers = list(output_format) if pagina else []
+             # Dividir la tabla en páginas
+            rows_per_page = 15  # Número de filas por página
+            num_pages = math.ceil(len(table_rows) / rows_per_page)
 
-                # Crear la tabla usando la librería tabulate
-                tabla = tabulate(pagina, headers=headers, tablefmt='fancy_grid')
+            for page_num in range(num_pages):
+                start_index = page_num * rows_per_page
+                end_index = start_index + rows_per_page
+                page_rows = table_rows[start_index:end_index]
 
-                # Crear un embed de discord con la tabla como descripción
-                embed = discord.Embed(description=tabla)
-
-                # Si es la primera página, añadir el título al embed
-                if i == 0:
-                    embed.title = "Tabla de mapas actual"
-
-                # Enviar el embed como mensaje
-                await interaction.response.send_message(embed=embed)
+            # Formatear la tabla de manera adecuada
+           # Formatear la tabla con espacios entre elementos y filas
+            table_str = "```"
+            table_str += tabulate(page_rows, headers=column_headers, tablefmt="plain", showindex=False, colalign=("left", "left", "left", "left", "left",))
+            table_str += "\n\n"  # Agregar una línea en blanco entre filas
+            table_str = table_str.replace("\n", "\n\n")  # Agregar una línea en blanco después de cada fila
+            table_str += "```"
+            # Crear el embed de Discord para la página
+            page_embed = discord.Embed(
+            title=f"Tabla (Página {page_num + 1}/{num_pages})",
+            description=table_str
+            )
+             # Enviar el mensaje como respuesta al comando
+            await interaction.response.send_message(embed=page_embed, ephemeral=True)
 
         @self.bot.tree.command(name="players")
         async def players(interaction: discord.Interaction):
@@ -135,9 +154,8 @@ class Commands:
                 color=discord.Color.blue()
                 )
 
-            await interaction.response.send_message(embed=embed,
-                                                    ephemeral=True)
-    
+            await interaction.response.send_message(embed=embed)
+
         @self.bot.tree.command(name="requestmap")
         async def requestmap(interaction: discord.Interaction, nombre:str, puntos:int, link:str, diff:str, mods:str, clear:str):
             id_canal_validacion = 1065744326606471178
@@ -153,7 +171,7 @@ class Commands:
                             )
             await interaction.response.send_message(embed=embed,
                                                     ephemeral=True)
-        
+            
         @self.bot.event
         async def on_raw_reaction_add(payload):
             canal_id = 1065744326606471178
@@ -170,12 +188,21 @@ class Commands:
 
                 self.start_db_connection()
                 self.insert("INSERT INTO public.tntd (nombre, puntos, link, diff, mods, clear) VALUES ('{}', {}, '{}', '{}', '{}', '{}')".format(nombre, puntos, link, diff, mods, clear))
-                
+
                 await message.delete()
 
 
         @self.bot.tree.command(name="ayuda")
         async def ayuda(interaction: discord.Interaction):
+            # Ruta de la imagen que quieres enviar
+            image_path = 'C:/Users/Alejandro/Desktop/BOT_DISCORD/IMG_20230309_161106.jpg'
+
+            # Cargar la imagen como un objeto de archivo discord.File
+            file = discord.File(image_path, filename='IMG_20230309_161106.jpg')
+
+            # Mensaje con el contenido de ayuda
             msg = '\n'.join([f"{key}: {value}" for key, value in ayuda_comandos.items()])
-            await interaction.response.send_message(msg)
+
+            # Enviar el mensaje con la imagen adjunta
+            await interaction.response.send_message(content=msg, file=file)
 
