@@ -13,7 +13,7 @@ ayuda_comandos = {
 }
 
 
-class Commands():
+class Commands:
     def __init__(self, bot) -> None:
         self.bot = bot
         self.conn = None
@@ -192,7 +192,7 @@ class Commands():
 
         @self.bot.tree.command(name="requestmap")
         async def requestmap(interaction: discord.Interaction, nombre:str, puntos:int, link:str, diff:str, mods:str, clear:str):
-            id_canal_validacion = 1053090057801695232
+            id_canal_validacion = 1113157312723550339
             channel = self.bot.get_channel(id_canal_validacion)
 
             message_content = f"Nombre: {nombre}\nPuntos: {puntos}\nLink: {link}\nDiff: {diff}\nMods: {mods}\nClear: {clear}"
@@ -208,7 +208,7 @@ class Commands():
             
         @self.bot.event
         async def on_raw_reaction_add(payload):
-            canal_id = 1053090057801695232
+            canal_id = 1113157312723550339
             if payload.channel_id == canal_id:
                 channel = self.bot.get_channel(payload.channel_id)
                 message = await channel.fetch_message(payload.message_id)
