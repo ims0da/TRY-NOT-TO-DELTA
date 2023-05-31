@@ -154,6 +154,7 @@ class Commands:
                 description=f'```\n{formatted_player_list}\n```',
                 color=discord.Color.blue()
                 )
+
             await interaction.response.send_message(embed=embed)
 
         @self.bot.tree.command(name="requestmap")
@@ -171,7 +172,7 @@ class Commands:
                             )
             await interaction.response.send_message(embed=embed,
                                                     ephemeral=True)
-
+            
         @self.bot.event
         async def on_raw_reaction_add(payload):
             canal_id = 1113157312723550339
@@ -201,6 +202,9 @@ class Commands:
 
             # Mensaje con el contenido de ayuda
             msg = '\n'.join([f"{key}: {value}" for key, value in ayuda_comandos.items()])
+
+            # Enviar el mensaje con la imagen adjunta
+            await interaction.response.send_message(content=msg, file=file)
 
             # Enviar el mensaje con la imagen adjunta
             await interaction.response.send_message(content=msg, file=file)

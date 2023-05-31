@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from commands import Commands
 from dotenv import load_dotenv
-
+import os
 # Leer el token
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
