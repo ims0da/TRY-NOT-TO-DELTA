@@ -1,7 +1,8 @@
 import discord
 import psycopg2
 from tabulate import tabulate
-
+import math
+from discord_components import DiscordComponents, Button, ButtonStyle
 
 ayuda_comandos = {
     "/players" : "Muestra la leaderboard con los puntos actuales.",
@@ -71,6 +72,18 @@ class Commands:
             except Exception as e:
                 print(e)
 
+        @self.bot.event
+        async def on_member_join(member):  # No se si funciona porque discord es un mierdolo y me ha dicho q he excedido el numero maximo de requests a mi bot :D
+            welcome_chann_id = 1112809557396299777
+            welcome_chann = self.bot.get_channel(welcome_chann_id)
+
+            msg = (
+                f'Bienvenido/a {member.mention} a TRY NOT TO DELTA! '
+                f'Esperemos que te lo pases bien por aquí!'
+            )
+
+            await welcome_chann.send(msg)
+
         @self.bot.tree.command(name="clear")
         async def clear(interaction: discord.Interaction):
             msg = (
@@ -88,35 +101,38 @@ class Commands:
             # el comando players)
 
             # Hacer consulta SQL
-            results = self.query("SELECT * FROM public.tntd")
+            results = self.query("SELECT * FROM public.tntd ORDER BY id")
+            
+            # Obtener los encabezados de las columnas de la tabla
+            column_headers = ["puntos","_", "mods", "clear"]
+            # Crear una lista de filas para la tabla
+            table_rows = []
+            for row in results:
+                table_rows.append(row)
 
-            half = len(results) // 2
-            first_half = results[:half]
-            second_half = results[half:]
+             # Dividir la tabla en páginas
+            rows_per_page = 10  # Número de filas por página
+            num_pages = math.ceil(len(table_rows) / rows_per_page)
 
-            # Crear la descripcion del primer mensaje
-            first_half_table = "\n".join([f"{row}" for row in first_half])
+            for page_num in range(num_pages):
+                start_index = page_num * rows_per_page
+                end_index = start_index + rows_per_page
+                page_rows = table_rows[start_index:end_index]
 
-            # Crear el primer mensaje
-            first_response = discord.Embed(
-                title="Tabla (Parte 1)",
-                description=first_half_table
+            # Formatear la tabla de manera adecuada
+           # Formatear la tabla con espacios entre elementos y filas
+            table_str = "```"
+            table_str += tabulate(page_rows, headers=column_headers, tablefmt="plain", showindex=False, colalign=("left", "left", "left", "left", "left",))
+            table_str += "\n\n"  # Agregar una línea en blanco entre filas
+            table_str = table_str.replace("\n", "\n\n")  # Agregar una línea en blanco después de cada fila
+            table_str += "```"
+            # Crear el embed de Discord para la página
+            page_embed = discord.Embed(
+            title=f"Tabla (Página {page_num + 1}/{num_pages})",
+            description=table_str
             )
-
-            # Crear la descripción del segundo mensaje
-            second_half_table = "\n".join([f"{row}" for row in second_half])
-
-            # Crear el segundo mensaje
-            second_response = discord.Embed(
-                title="Tabla (Parte 2)",
-                description=second_half_table
-            )
-
-            # Enviar los mensajes en Discord
-            await interaction.response.send_message(embed=first_response,
-                                                    ephemeral=True)
-            await interaction.followup.send(embed=second_response,
-                                            ephemeral=True)
+             # Enviar el mensaje como respuesta al comando
+            await interaction.response.send_message(embed=page_embed, ephemeral=True)
 
         @self.bot.tree.command(name="players")
         async def players(interaction: discord.Interaction):
@@ -145,9 +161,8 @@ class Commands:
                 color=discord.Color.blue()
                 )
 
-            await interaction.response.send_message(embed=embed,
-                                                    ephemeral=True)
-    
+            await interaction.response.send_message(embed=embed)
+
         @self.bot.tree.command(name="requestmap")
         async def requestmap(interaction: discord.Interaction, nombre:str, puntos:int, link:str, diff:str, mods:str, clear:str):
             id_canal_validacion = 1113157312723550339
