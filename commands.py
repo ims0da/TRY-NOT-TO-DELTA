@@ -2,7 +2,7 @@ import discord
 import psycopg2
 from tabulate import tabulate
 import math
-from discord_components import DiscordComponents, Button, ButtonStyle
+
 
 ayuda_comandos = {
     "/players": "Muestra la leaderboard con los puntos actuales.",
