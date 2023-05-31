@@ -240,3 +240,4 @@ class Commands:
             # Enviar el mensaje con la imagen adjunta
             await interaction.response.send_message(content=msg, file=file)
 
+
