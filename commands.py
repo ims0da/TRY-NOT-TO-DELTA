@@ -109,7 +109,7 @@ class Commands:
                 table_rows.append(row)
 
              # Dividir la tabla en páginas
-            rows_per_page = 15  # Número de filas por página
+            rows_per_page = 10  # Número de filas por página
             num_pages = math.ceil(len(table_rows) / rows_per_page)
 
             for page_num in range(num_pages):
@@ -210,5 +210,4 @@ class Commands:
             # Enviar el mensaje con la imagen adjunta
             await interaction.response.send_message(content=msg, file=file)
 
-            # Enviar el mensaje con la imagen adjunta
-            await interaction.response.send_message(content=msg, file=file)
+            
