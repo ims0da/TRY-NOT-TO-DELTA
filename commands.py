@@ -110,6 +110,7 @@ class Commands:
 
              # Dividir la tabla en páginas
             rows_per_page = 10  # Número de filas por página
+            rows_per_page = 10  # Número de filas por página
             num_pages = math.ceil(len(table_rows) / rows_per_page)
 
 
