@@ -8,6 +8,7 @@ ayuda_comandos = {
     "/tabla" : "Muestra la base de datos de mapas con el link del mapa, el nombre, la diff name, el mod y el clear.",
     "/clear"  : "Has hecho un clear a un mapa y requieres de tus puntos",
     "/ayuda" : "Muestra este comando",
+    "/requestmap" : "Envia un mapa a la cola de validación, te pedirá que insertes el nombre, los puntos, el link, la diff name, los mods y el clear. :)"
 }
 
 
@@ -81,42 +82,31 @@ class Commands:
 
         @self.bot.tree.command(name="tabla")
         async def tabla(interaction: discord.Interaction):
-            # TODO: Estaria guay hacer que si esto llega a 4096
-            # caracteres (maximo de los embeds de discord) se
-            # dividiese en diferentes mensajes. (para poder
-            # darle un formato guay con tabulate igual que en
-            # el comando players)
-
             # Hacer consulta SQL
             results = self.query("SELECT * FROM public.tntd")
+            
+            # Dividir los resultados en páginas de 10 elementos cada una
+            elementos_por_pagina = 10
+            paginas = [results[i:i+elementos_por_pagina] for i in range(0, len(results), elementos_por_pagina)]
 
-            half = len(results) // 2
-            first_half = results[:half]
-            second_half = results[half:]
+            # Crear y enviar los mensajes con las tablas
+            for i, pagina in enumerate(paginas):
+                output_format = {"Puntos" : pagina[i][2], "Nombre" : pagina[i][1],  "Diff Name" : pagina[i][4], "Mods" : pagina[i][5], "Clear" : pagina[i][6], "Link" : pagina[i][3]}
+                # Obtener los nombres de las columnas como encabezados
+                headers = list(output_format) if pagina else []
 
-            # Crear la descripcion del primer mensaje
-            first_half_table = "\n".join([f"{row}" for row in first_half])
+                # Crear la tabla usando la librería tabulate
+                tabla = tabulate(pagina, headers=headers, tablefmt='fancy_grid')
 
-            # Crear el primer mensaje
-            first_response = discord.Embed(
-                title="Tabla (Parte 1)",
-                description=first_half_table
-            )
+                # Crear un embed de discord con la tabla como descripción
+                embed = discord.Embed(description=tabla)
 
-            # Crear la descripción del segundo mensaje
-            second_half_table = "\n".join([f"{row}" for row in second_half])
+                # Si es la primera página, añadir el título al embed
+                if i == 0:
+                    embed.title = "Tabla de mapas actual"
 
-            # Crear el segundo mensaje
-            second_response = discord.Embed(
-                title="Tabla (Parte 2)",
-                description=second_half_table
-            )
-
-            # Enviar los mensajes en Discord
-            await interaction.response.send_message(embed=first_response,
-                                                    ephemeral=True)
-            await interaction.followup.send(embed=second_response,
-                                            ephemeral=True)
+                # Enviar el embed como mensaje
+                await interaction.response.send_message(embed=embed)
 
         @self.bot.tree.command(name="players")
         async def players(interaction: discord.Interaction):
@@ -150,7 +140,7 @@ class Commands:
     
         @self.bot.tree.command(name="requestmap")
         async def requestmap(interaction: discord.Interaction, nombre:str, puntos:int, link:str, diff:str, mods:str, clear:str):
-            id_canal_validacion = 1113157312723550339
+            id_canal_validacion = 1065744326606471178
             channel = self.bot.get_channel(id_canal_validacion)
 
             message_content = f"Nombre: {nombre}\nPuntos: {puntos}\nLink: {link}\nDiff: {diff}\nMods: {mods}\nClear: {clear}"
@@ -166,7 +156,7 @@ class Commands:
         
         @self.bot.event
         async def on_raw_reaction_add(payload):
-            canal_id = 1113157312723550339
+            canal_id = 1065744326606471178
             if payload.channel_id == canal_id:
                 channel = self.bot.get_channel(payload.channel_id)
                 message = await channel.fetch_message(payload.message_id)
@@ -182,8 +172,6 @@ class Commands:
                 self.insert("INSERT INTO public.tntd (nombre, puntos, link, diff, mods, clear) VALUES ('{}', {}, '{}', '{}', '{}', '{}')".format(nombre, puntos, link, diff, mods, clear))
                 
                 await message.delete()
-
-            await interaction.response.send_message(embed=embed)
 
 
         @self.bot.tree.command(name="ayuda")
