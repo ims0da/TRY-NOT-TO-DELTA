@@ -93,13 +93,7 @@ class Commands:
 
         @self.bot.tree.command(name="tabla")
         async def tabla(interaction: discord.Interaction):
-            # TODO: Estaria guay hacer que si esto llega a 4096
-            # caracteres (maximo de los embeds de discord) se
-            # dividiese en diferentes mensajes. (para poder
-            # darle un formato guay con tabulate igual que en
-            # el comando players)
-
-            # Hacer consulta SQL
+            
             results = self.query("SELECT * FROM public.tntd ORDER BY id")
             
             # Obtener los encabezados de las columnas de la tabla
@@ -108,8 +102,7 @@ class Commands:
             for row in results:
                 table_rows.append(row)
 
-             # Dividir la tabla en páginas
-            rows_per_page = 10  # Número de filas por página
+            rows_per_page = 8 # Número de filas por página
             num_pages = math.ceil(len(table_rows) / rows_per_page)
 
 
@@ -118,15 +111,15 @@ class Commands:
                 start_index = page_num * rows_per_page
                 end_index = start_index + rows_per_page
                 page_rows = table_rows[start_index:end_index]
-                table_str = "```"
-                table_str += tabulate(page_rows, headers=[], tablefmt="plain", showindex=False, colalign=("left", "left", "left", "left", "left",))
-                table_str += "\n\n"  # Agregar una línea en blanco entre filas
-                table_str = table_str.replace("\n", "\n\n")  # Agregar una línea en blanco después de cada fila
-                table_str += "```"
+
                 page_embed = discord.Embed(
-                title=f"Tabla (Página {page_num + 1}/{num_pages})",
-                description=table_str
+                title=f"Tabla (Página {page_num + 1}/{num_pages})"
                 )
+                
+                for row in page_rows:
+                    page_embed.add_field(name=f"Mapa {row[0]}: ", value=f"[{row[1]} - {row[4]}]({row[3]})", inline=True)
+                    page_embed.add_field(name="Puntos: ", value=f"{row[2]}", inline=True)
+                    page_embed.add_field(name="Requirement: ", value=f"{row[5]}, {row[6]}", inline=True)
                 embed_list.append(page_embed)
 
             index = 0
@@ -239,5 +232,4 @@ class Commands:
 
             # Enviar el mensaje con la imagen adjunta
             await interaction.response.send_message(content=msg, file=file)
-
 
