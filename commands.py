@@ -202,6 +202,7 @@ class Commands:
         @self.bot.event
         async def on_raw_reaction_add(payload):
             canal_id = 1113157312723550339
+            output_channel_id = 1113929255517171742
             if payload.channel_id == canal_id:
                 channel = self.bot.get_channel(payload.channel_id)
                 message = await channel.fetch_message(payload.message_id)
@@ -217,7 +218,8 @@ class Commands:
                 self.insert("INSERT INTO public.tntd (nombre, puntos, link, diff, mods, clear) VALUES ('{}', {}, '{}', '{}', '{}', '{}')".format(nombre, puntos, link, diff, mods, clear))
 
                 await message.delete()
-
+                output_channel = self.bot.get_channel(output_channel_id)
+                await output_channel.send(f"Se ha rankeado el mapa **{nombre}-{diff}** con el requerimiento de: **{clear}** y con el valor de **{puntos}** puntos.")
 
         @self.bot.tree.command(name="ayuda")
         async def ayuda(interaction: discord.Interaction):
