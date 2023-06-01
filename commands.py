@@ -206,10 +206,10 @@ class Commands:
                 channel = self.bot.get_channel(payload.channel_id)
                 message = await channel.fetch_message(payload.message_id)
                 content = message.content.split("\n")
-                nombre = content[0].split(": ")[1]
+                nombre = content[0].split(": ")[1].replace("'", "")
                 puntos = int(content[1].split(": ")[1])
                 link = content[2].split(": ")[1]
-                diff = content[3].split(": ")[1]
+                diff = content[3].split(": ")[1].replace("'", "")
                 mods = content[4].split(": ")[1]
                 clear = content[5].split(": ")[1]
 
