@@ -1,14 +1,16 @@
 import discord
 import sqlite3
 from tabulate import tabulate
+import math
+import asyncio
 
 ayuda_comandos = {
     "/players": "Muestra la leaderboard con los puntos actuales.",
     "/tabla": "Muestra la base de datos de mapas con el link del mapa, el nombre, la diff name, el mod y el clear.",
     "/clear": "Has hecho un clear a un mapa y requieres de tus puntos",
     "/ayuda": "Muestra este comando",
+    "/requestmap": "Pide un mapa para que sea añadido a la base de datos, te pedirá el link del mapa, el nombre, la diff name, el mod y el clear.",
 }
-
 
 class Commands:
     def __init__(self, bot) -> None:
@@ -78,6 +80,18 @@ class Commands:
             except Exception as e:
                 print(e)
 
+        @self.bot.event
+        async def on_member_join(member):  # No se si funciona porque discord es un mierdolo y me ha dicho q he excedido el numero maximo de requests a mi bot :D
+            welcome_chann_id = 1112809557396299777
+            welcome_chann = self.bot.get_channel(welcome_chann_id)
+
+            msg = (
+                f'Bienvenido/a {member.mention} a TRY NOT TO DELTA! '
+                f'Esperemos que te lo pases bien por aquí!'
+            )
+
+            await welcome_chann.send(msg)
+
         @self.bot.tree.command(name="clear")
         async def clear(interaction: discord.Interaction):
             msg = (
@@ -89,42 +103,66 @@ class Commands:
 
         @self.bot.tree.command(name="tabla")
         async def tabla(interaction: discord.Interaction):
-            # TODO: Estaria guay hacer que si esto llega a 4096
-            # caracteres (maximo de los embeds de discord) se
-            # dividiese en diferentes mensajes. (para poder
-            # darle un formato guay con tabulate igual que en
-            # el comando players)
 
-            # Hacer consulta SQL
-            results = self.query("SELECT * FROM public.tntd")
+            results = self.query("SELECT * FROM public.tntd ORDER BY id")
 
-            half = len(results) // 2
-            first_half = results[:half]
-            second_half = results[half:]
+            # Obtener los encabezados de las columnas de la tabla
+            # Crear una lista de filas para la tabla
+            table_rows = []
+            for row in results:
+                table_rows.append(row)
 
-            # Crear la descripcion del primer mensaje
-            first_half_table = "\n".join([f"{row}" for row in first_half])
+            rows_per_page = 8 # Número de filas por página
+            num_pages = math.ceil(len(table_rows) / rows_per_page)
 
-            # Crear el primer mensaje
-            first_response = discord.Embed(
-                title="Tabla (Parte 1)",
-                description=first_half_table
-            )
 
-            # Crear la descripción del segundo mensaje
-            second_half_table = "\n".join([f"{row}" for row in second_half])
+            embed_list = []
+            for page_num in range(num_pages):
+                start_index = page_num * rows_per_page
+                end_index = start_index + rows_per_page
+                page_rows = table_rows[start_index:end_index]
 
-            # Crear el segundo mensaje
-            second_response = discord.Embed(
-                title="Tabla (Parte 2)",
-                description=second_half_table
-            )
+                page_embed = discord.Embed(
+                title=f"Tabla (Página {page_num + 1}/{num_pages})"
+                )
 
-            # Enviar los mensajes en Discord
-            await interaction.response.send_message(embed=first_response,
-                                                    ephemeral=True)
-            await interaction.followup.send(embed=second_response,
-                                            ephemeral=True)
+                for row in page_rows:
+                    page_embed.add_field(name=f"Mapa {row[0]}: ", value=f"[{row[1]} - {row[4]}]({row[3]})", inline=True)
+                    page_embed.add_field(name="Puntos: ", value=f"{row[2]}", inline=True)
+                    page_embed.add_field(name="Requirement: ", value=f"{row[5]}, {row[6]}", inline=True)
+                embed_list.append(page_embed)
+
+            index = 0
+            message = await interaction.response.send_message(embed=embed_list[index])
+            canal = interaction.channel_id
+
+            message_history = self.bot.get_channel(canal).history(limit=1)
+            last_message = message_history.ag_frame.f_locals.get('self').last_message
+
+            await last_message.add_reaction('⬅️')
+            await last_message.add_reaction('➡️')
+
+            def check(reaction, user):
+                return user == interaction.user and str(reaction.emoji) in ['⬅️', '➡️']
+
+            while True:
+                try:
+                    reaction, _ = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+
+                    if str(reaction.emoji) == '⬅️':
+                        index -= 1
+                        if index < 0:
+                            index = len(embed_list) - 1
+                    elif str(reaction.emoji) == '➡️':
+                        index += 1
+                        if index >= len(embed_list):
+                            index = 0
+
+                    await last_message.edit(embed=embed_list[index])
+                    await last_message.remove_reaction(reaction, interaction.user)
+                except asyncio.TimeoutError:
+                    break
+
 
         @self.bot.tree.command(name="players")
         async def players(interaction: discord.Interaction):
@@ -153,8 +191,7 @@ class Commands:
                 color=discord.Color.blue()
                 )
 
-            await interaction.response.send_message(embed=embed,
-                                                    ephemeral=True)
+            await interaction.response.send_message(embed=embed)
 
         @self.bot.tree.command(name="requestmap")
         async def requestmap(interaction: discord.Interaction, nombre:str, puntos:int, link:str, diff:str, mods:str, clear:str):
@@ -171,31 +208,40 @@ class Commands:
                             )
             await interaction.response.send_message(embed=embed,
                                                     ephemeral=True)
-
         @self.bot.event
         async def on_raw_reaction_add(payload):
             canal_id = 1113157312723550339
+            output_channel_id = 1113929255517171742
             if payload.channel_id == canal_id:
                 channel = self.bot.get_channel(payload.channel_id)
                 message = await channel.fetch_message(payload.message_id)
                 content = message.content.split("\n")
-                nombre = content[0].split(": ")[1]
+                nombre = content[0].split(": ")[1].replace("'", "")
                 puntos = int(content[1].split(": ")[1])
                 link = content[2].split(": ")[1]
-                diff = content[3].split(": ")[1]
+                diff = content[3].split(": ")[1].replace("'", "")
                 mods = content[4].split(": ")[1]
                 clear = content[5].split(": ")[1]
 
                 self.insert("INSERT INTO public.tntd (nombre, puntos, link, diff, mods, clear) VALUES ('{}', {}, '{}', '{}', '{}', '{}')".format(nombre, puntos, link, diff, mods, clear))
 
                 await message.delete()
-
-
+                output_channel = self.bot.get_channel(output_channel_id)
+                await output_channel.send(f"Se ha rankeado el mapa **{nombre}-{diff}** con el requerimiento de: **{clear}** y con el valor de **{puntos}** puntos.")
 
         @self.bot.tree.command(name="ayuda")
         async def ayuda(interaction: discord.Interaction):
+            # Ruta de la imagen que quieres enviar
+            image_path = 'C:/Users/Alejandro/Desktop/BOT_DISCORD/IMG_20230309_161106.jpg'
+
+            # Cargar la imagen como un objeto de archivo discord.File
+            file = discord.File(image_path, filename='IMG_20230309_161106.jpg')
+
+            # Mensaje con el contenido de ayuda
             msg = '\n'.join([f"{key}: {value}" for key, value in ayuda_comandos.items()])
-            await interaction.response.send_message(msg)
+
+            # Enviar el mensaje con la imagen adjunta
+            await interaction.response.send_message(content=msg, file=file)
 
         @self.bot.tree.command(name="register")
         async def register(interaction: discord.Interaction):
