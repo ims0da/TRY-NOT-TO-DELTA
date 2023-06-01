@@ -3,6 +3,8 @@ import sqlite3
 from tabulate import tabulate
 import math
 import asyncio
+import os
+from ossapi import Ossapi
 
 ayuda_comandos = {
     "/players": "Muestra la leaderboard con los puntos actuales.",
@@ -12,17 +14,30 @@ ayuda_comandos = {
     "/requestmap": "Pide un mapa para que sea añadido a la base de datos, te pedirá el link del mapa, el nombre, la diff name, el mod y el clear.",
 }
 
+condition_types = {
+    "acc": 0,
+    "misscount": 1,
+    "greatcount": 2,
+    "score": 3
+}
+
+mod_list = {
+    "NOMOD": 0,
+    "DT": 64,
+    "HR": 16
+}
+
+
 class Commands:
     def __init__(self, bot) -> None:
         self.bot = bot
         self.conn = None
         self.start_commands()
+        self.api = Ossapi(os.getenv("OSU_CLIENT_ID"), os.getenv("OSU_CLIENT_SECRET"))
 
     def start_db_connection(self):
         """Inicializa la conexión a la base de datos"""
         self.conn = sqlite3.connect("database/db.sqlite")
-
-
 
     # Consulta a base de datos
     def query(self, string: str):
@@ -41,9 +56,9 @@ class Commands:
         # Devolver el resultado
         return results
 
-
-    def insert(self, string: str): # <- este es lo mismo que el metodo query de arriba, solo que cuando quieres insertar, modificar o eliminar, no puedes hacer un fetch.
-        self.start_db_connection() # <- por eso no hay un return, porque no hay nada que devolver, solo se ejecuta la consulta y ya, es digamos "interno"
+    def insert(self,
+               string: str):  # <- este es lo mismo que el metodo query de arriba, solo que cuando quieres insertar, modificar o eliminar, no puedes hacer un fetch.
+        self.start_db_connection()  # <- por eso no hay un return, porque no hay nada que devolver, solo se ejecuta la consulta y ya, es digamos "interno"
 
         cursor = self.conn.cursor()
         cursor.execute(string)
@@ -55,14 +70,13 @@ class Commands:
         cursor.close()
         self.conn.close()
 
-
     def get_players(self):
         return self.query("""
                     SELECT user_name, sum(map.points) total_points
                     FROM
                      PLAYERS
                      LEFT JOIN ACHIEVEMENT ON ACHIEVEMENT.player_id = PLAYERS.discord_id
-                     LEFT JOIN MAP ON ACHIEVEMENT.map_hash = MAP.map_hash
+                     LEFT JOIN TNTD ON ACHIEVEMENT.map_hash = TNTD.map_hash
 
                     GROUP BY user_name
                     """)
@@ -81,7 +95,8 @@ class Commands:
                 print(e)
 
         @self.bot.event
-        async def on_member_join(member):  # No se si funciona porque discord es un mierdolo y me ha dicho q he excedido el numero maximo de requests a mi bot :D
+        async def on_member_join(
+                member):  # No se si funciona porque discord es un mierdolo y me ha dicho q he excedido el numero maximo de requests a mi bot :D
             welcome_chann_id = 1112809557396299777
             welcome_chann = self.bot.get_channel(welcome_chann_id)
 
@@ -112,9 +127,8 @@ class Commands:
             for row in results:
                 table_rows.append(row)
 
-            rows_per_page = 8 # Número de filas por página
+            rows_per_page = 8  # Número de filas por página
             num_pages = math.ceil(len(table_rows) / rows_per_page)
-
 
             embed_list = []
             for page_num in range(num_pages):
@@ -123,7 +137,7 @@ class Commands:
                 page_rows = table_rows[start_index:end_index]
 
                 page_embed = discord.Embed(
-                title=f"Tabla (Página {page_num + 1}/{num_pages})"
+                    title=f"Tabla (Página {page_num + 1}/{num_pages})"
                 )
 
                 for row in page_rows:
@@ -163,7 +177,6 @@ class Commands:
                 except asyncio.TimeoutError:
                     break
 
-
         @self.bot.tree.command(name="players")
         async def players(interaction: discord.Interaction):
             # Hacer consulta SQL
@@ -174,7 +187,7 @@ class Commands:
                 results,
                 key=lambda row: row[1],
                 reverse=True
-                )
+            )
 
             # Crear headers de la tabla
             headers = ['Nombre', 'Puntos']
@@ -182,19 +195,20 @@ class Commands:
             # Crear la lista en forma de tabla
             formatted_player_list = (
                 tabulate(sorted_results, headers, tablefmt='pipe')
-                )
+            )
 
             # Formatear los resultados como un mensaje de Discord
             embed = discord.Embed(
                 title="Lista de jugadores",
                 description=f'```\n{formatted_player_list}\n```',
                 color=discord.Color.blue()
-                )
+            )
 
             await interaction.response.send_message(embed=embed)
 
         @self.bot.tree.command(name="requestmap")
-        async def requestmap(interaction: discord.Interaction, nombre:str, puntos:int, link:str, diff:str, mods:str, clear:str):
+        async def requestmap(interaction: discord.Interaction, nombre: str, puntos: int, link: str, diff: str,
+                             mods: str, clear: str):
             id_canal_validacion = 1113157312723550339
             channel = self.bot.get_channel(id_canal_validacion)
 
@@ -202,12 +216,44 @@ class Commands:
             await channel.send(message_content)
 
             embed = discord.Embed(
-                            title="Tu mapa ha sido enviado a la cola de validación",
-                            description="Se paciente, que no se cobra por esto :moyai:",
-                            color=discord.Color.green()
-                            )
+                title="Tu mapa ha sido enviado a la cola de validación",
+                description="Se paciente, que no se cobra por esto :moyai:",
+                color=discord.Color.green()
+            )
             await interaction.response.send_message(embed=embed,
                                                     ephemeral=True)
+
+        @self.bot.tree.command(name="addmaplink")
+        async def addmaplink(interaction: discord.Interaction, link: str, condition_type: str, mods: str,
+                             condition_value: str, points: int):
+            insertion_data = {
+                "map_link": link,
+                "points": points,
+                "condition_value": condition_value
+            }
+
+            diff_id_str = link.split("/")[-1]
+            try:
+                # pilla el int de la condicion a partir del string
+                insertion_data["condition_type"] = condition_types[condition_type]
+                # pilla el int de los mods a partir del string
+
+                insertion_data["mods"] = mod_list[mods]
+                diff_id = int(diff_id_str)
+                diff_info = self.api.beatmap(diff_id)
+                insertion_data["map_hash"] = diff_info.checksum
+                insertion_data["diff_name"] = diff_info.version
+
+                beatmap_info = self.api.beatmapset(diff_info.beatmapset_id)
+                insertion_data["map_name"] = beatmap_info.title
+                insertion_data["mapper"] = beatmap_info.creator
+                insertion_data["artist"] = beatmap_info.artist
+
+
+            except:
+                await interaction.response.send_message("Se ha producido un error")
+            await interaction.response.send_message(insertion_data)
+
         @self.bot.event
         async def on_raw_reaction_add(payload):
             canal_id = 1113157312723550339
@@ -223,19 +269,20 @@ class Commands:
                 mods = content[4].split(": ")[1]
                 clear = content[5].split(": ")[1]
 
-                self.insert("INSERT INTO public.tntd (nombre, puntos, link, diff, mods, clear) VALUES ('{}', {}, '{}', '{}', '{}', '{}')".format(nombre, puntos, link, diff, mods, clear))
+                self.insert(
+                    "INSERT INTO public.tntd (nombre, puntos, link, diff, mods, clear) VALUES ('{}', {}, '{}', '{}', '{}', '{}')".format(
+                        nombre, puntos, link, diff, mods, clear))
 
                 await message.delete()
                 output_channel = self.bot.get_channel(output_channel_id)
-                await output_channel.send(f"Se ha rankeado el mapa **{nombre}-{diff}** con el requerimiento de: **{clear}** y con el valor de **{puntos}** puntos.")
+                await output_channel.send(
+                    f"Se ha rankeado el mapa **{nombre}-{diff}** con el requerimiento de: **{clear}** y con el valor de **{puntos}** puntos.")
 
         @self.bot.tree.command(name="ayuda")
         async def ayuda(interaction: discord.Interaction):
-            # Ruta de la imagen que quieres enviar
-            image_path = 'C:/Users/Alejandro/Desktop/BOT_DISCORD/IMG_20230309_161106.jpg'
 
             # Cargar la imagen como un objeto de archivo discord.File
-            file = discord.File(image_path, filename='IMG_20230309_161106.jpg')
+            file = discord.File(".", filename='IMG_20230309_161106.jpg')
 
             # Mensaje con el contenido de ayuda
             msg = '\n'.join([f"{key}: {value}" for key, value in ayuda_comandos.items()])
