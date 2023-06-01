@@ -103,10 +103,6 @@ class Commands:
             results = self.query("SELECT * FROM public.tntd ORDER BY id")
             
             # Obtener los encabezados de las columnas de la tabla
-<<<<<<< Updated upstream
-=======
-            column_headers = []
->>>>>>> Stashed changes
             # Crear una lista de filas para la tabla
             table_rows = []
             for row in results:
