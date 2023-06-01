@@ -33,7 +33,7 @@ class Commands:
         self.bot = bot
         self.conn = None
         self.start_commands()
-        self.api = Ossapi(os.getenv("OSU_CLIENT_ID"), os.getenv("OSU_CLIENT_SECRET"))
+        self.api = Ossapi(int(os.getenv("OSU_CLIENT_ID")), os.getenv("OSU_CLIENT_SECRET"))
 
     def start_db_connection(self):
         """Inicializa la conexión a la base de datos"""
