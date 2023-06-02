@@ -87,7 +87,7 @@ class Commands7k(Commands):
         # La idea es quiza añadirle un parametro al comando de
         # requestmap original pero no se todavía que vamos a
         # hacer con la base de datos asi que asi se queda de momento
-        @self.bot.tree.command(name="request7kmap")
+        @self.bot.tree.command(name="requestmap7k")
         async def request7kmap(interaction: discord.Interaction,
                                nombre: str, puntos: int, link: str,
                                diff: str, mods: str, clear: str):
