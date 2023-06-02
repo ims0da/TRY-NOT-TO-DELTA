@@ -1,7 +1,8 @@
 import discord
 import psycopg2
 from tabulate import tabulate
-
+import math
+import asyncio
 
 ayuda_comandos = {
     "/players": "Muestra la leaderboard con los puntos actuales, también esta /playerset para etterna y /players7k para 7k.",
@@ -92,42 +93,66 @@ class Commands:
 
         @self.bot.tree.command(name="tabla")
         async def tabla(interaction: discord.Interaction):
-            # TODO: Estaria guay hacer que si esto llega a 4096
-            # caracteres (maximo de los embeds de discord) se
-            # dividiese en diferentes mensajes. (para poder
-            # darle un formato guay con tabulate igual que en
-            # el comando players)
+            
+            results = self.query("SELECT * FROM public.tntd ORDER BY id")
+            
+            # Obtener los encabezados de las columnas de la tabla
+            # Crear una lista de filas para la tabla
+            table_rows = []
+            for row in results:
+                table_rows.append(row)
 
-            # Hacer consulta SQL
-            results = self.query("SELECT * FROM public.tntd")
+            rows_per_page = 8 # Número de filas por página
+            num_pages = math.ceil(len(table_rows) / rows_per_page)
 
-            half = len(results) // 2
-            first_half = results[:half]
-            second_half = results[half:]
 
-            # Crear la descripcion del primer mensaje
-            first_half_table = "\n".join([f"{row}" for row in first_half])
+            embed_list = []
+            for page_num in range(num_pages):
+                start_index = page_num * rows_per_page
+                end_index = start_index + rows_per_page
+                page_rows = table_rows[start_index:end_index]
 
-            # Crear el primer mensaje
-            first_response = discord.Embed(
-                title="Tabla (Parte 1)",
-                description=first_half_table
-            )
+                page_embed = discord.Embed(
+                title=f"Tabla (Página {page_num + 1}/{num_pages})"
+                )
+                
+                for row in page_rows:
+                    page_embed.add_field(name=f"Mapa {row[0]}: ", value=f"[{row[1]} - {row[4]}]({row[3]})", inline=True)
+                    page_embed.add_field(name="Puntos: ", value=f"{row[2]}", inline=True)
+                    page_embed.add_field(name="Requirement: ", value=f"{row[5]}, {row[6]}", inline=True)
+                embed_list.append(page_embed)
 
-            # Crear la descripción del segundo mensaje
-            second_half_table = "\n".join([f"{row}" for row in second_half])
+            index = 0
+            message = await interaction.response.send_message(embed=embed_list[index])
+            canal = interaction.channel_id
 
-            # Crear el segundo mensaje
-            second_response = discord.Embed(
-                title="Tabla (Parte 2)",
-                description=second_half_table
-            )
+            message_history = self.bot.get_channel(canal).history(limit=1)
+            last_message = message_history.ag_frame.f_locals.get('self').last_message
 
-            # Enviar los mensajes en Discord
-            await interaction.response.send_message(embed=first_response,
-                                                    ephemeral=True)
-            await interaction.followup.send(embed=second_response,
-                                            ephemeral=True)
+            await last_message.add_reaction('⬅️')
+            await last_message.add_reaction('➡️')
+
+            def check(reaction, user):
+                return user == interaction.user and str(reaction.emoji) in ['⬅️', '➡️']
+
+            while True:
+                try:
+                    reaction, _ = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+
+                    if str(reaction.emoji) == '⬅️':
+                        index -= 1
+                        if index < 0:
+                            index = len(embed_list) - 1
+                    elif str(reaction.emoji) == '➡️':
+                        index += 1
+                        if index >= len(embed_list):
+                            index = 0
+
+                    await last_message.edit(embed=embed_list[index])
+                    await last_message.remove_reaction(reaction, interaction.user)
+                except asyncio.TimeoutError:
+                    break
+
 
         @self.bot.tree.command(name="players")
         async def players(interaction: discord.Interaction):
@@ -209,5 +234,4 @@ class Commands:
 
             # Enviar el mensaje con la imagen adjunta
             await interaction.response.send_message(content=msg, file=file)
-
-        
+            
