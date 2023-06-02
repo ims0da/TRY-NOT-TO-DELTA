@@ -2,16 +2,7 @@ import discord
 import psycopg2
 from tabulate import tabulate
 
-
-ayuda_comandos = {
-    "/players": "Muestra la leaderboard con los puntos actuales.",
-    "/tabla": "Muestra la base de datos de mapas con el link del mapa, el nombre, la diff name, el mod y el clear.",
-    "/clear": "Has hecho un clear a un mapa y requieres de tus puntos",
-    "/ayuda": "Muestra este comando",
-}
-
-
-class Commands:
+class Commands7k:
     def __init__(self, bot) -> None:
         self.bot = bot
         self.conn = None
@@ -69,19 +60,8 @@ class Commands:
             except Exception as e:
                 print(e)
 
-        @self.bot.event
-        async def on_member_join(member):  # No se si funciona porque discord es un mierdolo y me ha dicho q he excedido el numero maximo de requests a mi bot :D
-            welcome_chann_id = 1112809557396299777
-            welcome_chann = self.bot.get_channel(welcome_chann_id)
-
-            msg = (
-                f'Bienvenido/a {member.mention} a TRY NOT TO DELTA! '
-                f'Esperemos que te lo pases bien por aquí!'
-            )
-
-            await welcome_chann.send(msg)
-
-        @self.bot.tree.command(name="clear")
+       
+        @self.bot.tree.command(name="clear7k")
         async def clear(interaction: discord.Interaction):
             msg = (
                 'Espero que no estés usando basura, '
@@ -89,8 +69,8 @@ class Commands:
                 )
             await interaction.response.send_message(msg, ephemeral=True)
 
-        @self.bot.tree.command(name="tabla")
-        async def tabla(interaction: discord.Interaction):
+        @self.bot.tree.command(name="tabla7k")
+        async def tabla7k(interaction: discord.Interaction):
             # TODO: Estaria guay hacer que si esto llega a 4096
             # caracteres (maximo de los embeds de discord) se
             # dividiese en diferentes mensajes. (para poder
@@ -98,7 +78,7 @@ class Commands:
             # el comando players)
 
             # Hacer consulta SQL
-            results = self.query("SELECT * FROM public.tntd")
+            results = self.query("SELECT * FROM public.tntd7k")
 
             half = len(results) // 2
             first_half = results[:half]
@@ -128,10 +108,10 @@ class Commands:
             await interaction.followup.send(embed=second_response,
                                             ephemeral=True)
 
-        @self.bot.tree.command(name="players")
-        async def players(interaction: discord.Interaction):
+        @self.bot.tree.command(name="players7k")
+        async def players7k(interaction: discord.Interaction):
             # Hacer consulta SQL
-            results = self.query("SELECT NOMBRE, PUNTOS  FROM public.players")
+            results = self.query("SELECT NOMBRE, PUNTOS  FROM public.players7k")
 
             # Ordenar los resultados de mayor a menor puntos
             sorted_results = sorted(
@@ -157,8 +137,8 @@ class Commands:
 
             await interaction.response.send_message(embed=embed)
 
-        @self.bot.tree.command(name="requestmap")
-        async def requestmap(interaction: discord.Interaction, nombre:str, puntos:int, link:str, diff:str, mods:str, clear:str):
+        @self.bot.tree.command(name="requestmap7k")
+        async def requestmap7k(interaction: discord.Interaction, nombre:str, puntos:int, link:str, diff:str, mods:str, clear:str):
             id_canal_validacion = 1113157312723550339
             channel = self.bot.get_channel(id_canal_validacion)
 
@@ -189,24 +169,9 @@ class Commands:
                 clear = content[5].split(": ")[1]
 
                 self.start_db_connection()
-                self.insert("INSERT INTO public.tntd (nombre, puntos, link, diff, mods, clear) VALUES ('{}', {}, '{}', '{}', '{}', '{}')".format(nombre, puntos, link, diff, mods, clear))
+                self.insert("INSERT INTO public.tntd7k (nombre, puntos, link, diff, mods, clear) VALUES ('{}', {}, '{}', '{}', '{}', '{}')".format(nombre, puntos, link, diff, mods, clear))
 
                 await message.delete()
                 output_channel = self.bot.get_channel(output_channel_id)
-                await output_channel.send(f"Se ha rankeado el mapa **{nombre}-{diff}** con el requerimiento de: **{clear}** y con el valor de **{puntos}** puntos.")
-
-        @self.bot.tree.command(name="ayuda")
-        async def ayuda(interaction: discord.Interaction):
-            # Ruta de la imagen que quieres enviar
-            image_path = 'C:/Users/Alejandro/Desktop/BOT_DISCORD/IMG_20230309_161106.jpg'
-
-            # Cargar la imagen como un objeto de archivo discord.File
-            file = discord.File(image_path, filename='IMG_20230309_161106.jpg')
-
-            # Mensaje con el contenido de ayuda
-            msg = '\n'.join([f"{key}: {value}" for key, value in ayuda_comandos.items()])
-
-            # Enviar el mensaje con la imagen adjunta
-            await interaction.response.send_message(content=msg, file=file)
-
+                await output_channel.send(f"Se ha rankeado el mapa de 7k **{nombre}-{diff}** con el requerimiento de: **{clear}** y con el valor de **{puntos}** puntos.")
         
