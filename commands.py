@@ -5,11 +5,11 @@ import math
 import asyncio
 
 ayuda_comandos = {
-    "/players": "Muestra la leaderboard con los puntos actuales, también esta /playerset para etterna y /players7k para 7k.",
-    "/tabla": "Muestra la base de datos de mapas con el link del mapa, el nombre, la diff name, el mod y el clear, también esta /tablaet para etterna y /tabla7k para 7k.",
+    "/players": "Muestra la leaderboard con los puntos actuales, también esta /playerset para etterna y /players7k para 7k. ENGLISH: Shows players, pretty self explanatory",
+    "/tabla": "Muestra la base de datos de mapas con el link del mapa, el nombre, la diff name, el mod y el clear, también esta /tablaet para etterna y /tabla7k para 7k. ENGLISH: Shows current maps in the database.",
     "/clear": "Has hecho un clear a un mapa y requieres de tus puntos",
-    "/ayuda": "Muestra este comando",
-    "/requestmap": "Requestea un mapa o pack el cual debe ser aprobado por playtesters. /requestmap para 4k, /requestmapet para etterna y /requestmap7k para 7k."
+    "/ayuda": "Muestra este comando ENGLISH: Shows this command.",
+    "/requestmap": "Requestea un mapa o pack el cual debe ser aprobado por playtesters. /requestmap para 4k, /requestmapet para etterna y /requestmap7k para 7k ENGLISH: Request a map."
 }
 
 
@@ -201,25 +201,78 @@ class Commands:
             
         @self.bot.event
         async def on_raw_reaction_add(payload):
-            canal_id = 1113157312723550339
+            canal_id_1 = 1113157312723550339
+            canal_id_2 = 1114214848990023773
+            canal_id_3 = 1114217138819973171
+            if payload.channel_id == canal_id_1:
+                await handle_reaction_command_1(payload)
+            elif payload.channel_id == canal_id_2:
+                await handle_reaction_command_2(payload)
+            elif payload.channel_id == canal_id_3:
+                await handle_reaction_command_3(payload)
+        async def handle_reaction_command_1(payload):
             output_channel_id = 1113929255517171742
-            if payload.channel_id == canal_id:
-                channel = self.bot.get_channel(payload.channel_id)
-                message = await channel.fetch_message(payload.message_id)
-                content = message.content.split("\n")
-                nombre = content[0].split(": ")[1]
-                puntos = int(content[1].split(": ")[1])
-                link = content[2].split(": ")[1]
-                diff = content[3].split(": ")[1]
-                mods = content[4].split(": ")[1]
-                clear = content[5].split(": ")[1]
 
-                self.start_db_connection()
-                self.insert("INSERT INTO public.tntd (nombre, puntos, link, diff, mods, clear) VALUES ('{}', {}, '{}', '{}', '{}', '{}')".format(nombre, puntos, link, diff, mods, clear))
+            channel = self.bot.get_channel(payload.channel_id)
+            message = await channel.fetch_message(payload.message_id)
+            content = message.content.split("\n")
+            nombre = content[0].split(": ")[1]
+            puntos = int(content[1].split(": ")[1])
+            link = content[2].split(": ")[1]
+            diff = content[3].split(": ")[1]
+            mods = content[4].split(": ")[1]
+            clear = content[5].split(": ")[1]
 
-                await message.delete()
-                output_channel = self.bot.get_channel(output_channel_id)
-                await output_channel.send(f"Se ha rankeado el mapa **{nombre}-{diff}** con el requerimiento de: **{clear}** y con el valor de **{puntos}** puntos.")
+            self.start_db_connection()
+            self.insert("INSERT INTO public.tntd (nombre, puntos, link, diff, mods, clear) VALUES ('{}', {}, '{}', '{}', '{}', '{}')".format(nombre, puntos, link, diff, mods, clear))
+
+            await message.delete()
+            output_channel = self.bot.get_channel(output_channel_id)
+            await output_channel.send(f"Se ha rankeado el mapa de 4k **{nombre}-{diff}** con el requerimiento de: **{clear}** y con el valor de **{puntos}** puntos.")
+
+        async def handle_reaction_command_2(payload):
+            output_channel_id = 1114214734015766599
+
+            channel = self.bot.get_channel(payload.channel_id)
+            message = await channel.fetch_message(payload.message_id)
+            content = message.content.split("\n")
+            nombre = content[0].split(": ")[1]
+            puntos = int(content[1].split(": ")[1])
+            link = content[2].split(": ")[1]
+            diff = content[3].split(": ")[1]
+            mods = content[4].split(": ")[1]
+            clear = content[5].split(": ")[1]
+
+            self.start_db_connection()
+            self.insert("INSERT INTO public.tntd7k (nombre, puntos, link, diff, mods, clear) VALUES ('{}', {}, '{}', '{}', '{}', '{}')".format(nombre, puntos, link, diff, mods, clear))
+
+            await message.delete()
+            output_channel = self.bot.get_channel(output_channel_id)
+            await output_channel.send(f"Se ha rankeado el mapa  de 7k **{nombre}-{diff}** con el requerimiento de: **{clear}** y con el valor de **{puntos}** puntos.")
+
+        async def handle_reaction_command_3(payload):
+            output_channel_id = 1114217099775189023
+
+            channel = self.bot.get_channel(payload.channel_id)
+            message = await channel.fetch_message(payload.message_id)
+            content = message.content.split("\n")
+            nombre = content[0].split(": ")[1]
+            puntos = int(content[1].split(": ")[1])
+            link = content[2].split(": ")[1]
+            diff = content[3].split(": ")[1]
+            mods = content[4].split(": ")[1]
+            clear = content[5].split(": ")[1]
+
+            self.start_db_connection()
+            self.insert("INSERT INTO public.tntdet (nombre, puntos, link, diff, mods, clear) VALUES ('{}', {}, '{}', '{}', '{}', '{}')".format(nombre, puntos, link, diff, mods, clear))
+
+            await message.delete()
+            output_channel = self.bot.get_channel(output_channel_id)
+            await output_channel.send(f"Se ha rankeado el mapa de etterna **{nombre}-{diff}** con el requerimiento de: **{clear}** y con el valor de **{puntos}** puntos.")
+
+
+
+
 
         @self.bot.tree.command(name="ayuda")
         async def ayuda(interaction: discord.Interaction):
