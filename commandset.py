@@ -73,7 +73,7 @@ class Commandset:
             await interaction.response.send_message(msg, ephemeral=True)
 
         @self.bot.tree.command(name="tablaet")
-        async def tabla(interaction: discord.Interaction):
+        async def tablaet(interaction: discord.Interaction):
             
             results = self.query("SELECT * FROM public.tntdet ORDER BY id")
             
@@ -94,7 +94,7 @@ class Commandset:
                 page_rows = table_rows[start_index:end_index]
 
                 page_embed = discord.Embed(
-                title=f"Tabla (Página {page_num + 1}/{num_pages})"
+                title=f"Tabla de Etterna (Página {page_num + 1}/{num_pages})"
                 )
                 
                 for row in page_rows:

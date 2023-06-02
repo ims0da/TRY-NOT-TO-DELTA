@@ -113,7 +113,7 @@ class Commands:
                 page_rows = table_rows[start_index:end_index]
 
                 page_embed = discord.Embed(
-                title=f"Tabla (Página {page_num + 1}/{num_pages})"
+                title=f"Tabla de 4k (Página {page_num + 1}/{num_pages})"
                 )
                 
                 for row in page_rows:
