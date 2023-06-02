@@ -130,7 +130,7 @@ class Commands7k:
 
             # Formatear los resultados como un mensaje de Discord
             embed = discord.Embed(
-                title="Lista de jugadores",
+                title="Lista de jugadores de 7k.",
                 description=f'```\n{formatted_player_list}\n```',
                 color=discord.Color.blue()
                 )
