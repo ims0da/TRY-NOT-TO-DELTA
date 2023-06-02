@@ -164,7 +164,7 @@ class Commandset:
             await interaction.response.send_message(embed=embed)
 
         @self.bot.tree.command(name="requestmapet")
-        async def requestmap7k(interaction: discord.Interaction, nombre:str, puntos:int, link:str, diff:str, mods:str, clear:str):
+        async def requestmapet(interaction: discord.Interaction, nombre:str, puntos:int, link:str, diff:str, mods:str, clear:str):
             id_canal_validacion = 1114217138819973171
             channel = self.bot.get_channel(id_canal_validacion)
 
