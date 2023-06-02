@@ -137,7 +137,7 @@ class Commandset:
         @self.bot.tree.command(name="playerset")
         async def playerset(interaction: discord.Interaction):
             # Hacer consulta SQL
-            results = self.query("SELECT NOMBRE, PUNTOS  FROM public.playerset")
+            results = self.query("SELECT NOMBRE, PUNTOS FROM public.playerset WHERE PUNTOS != '0'")
 
             # Ordenar los resultados de mayor a menor puntos
             sorted_results = sorted(

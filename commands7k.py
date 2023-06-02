@@ -137,7 +137,7 @@ class Commands7k:
         @self.bot.tree.command(name="players7k")
         async def players7k(interaction: discord.Interaction):
             # Hacer consulta SQL
-            results = self.query("SELECT NOMBRE, PUNTOS  FROM public.players7k")
+            results = self.query("SELECT NOMBRE, PUNTOS FROM public.players7k WHERE PUNTOS != '0'")
 
             # Ordenar los resultados de mayor a menor puntos
             sorted_results = sorted(
