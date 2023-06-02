@@ -164,8 +164,8 @@ class Commandset:
             await interaction.response.send_message(embed=embed)
 
         @self.bot.tree.command(name="requestmapet")
-        async def requestmapet(interaction: discord.Interaction, nombre:str, puntos:int, link:str, diff:str, mods:str, clear:str):
-            id_canal_validacion = 1113157312723550339
+        async def requestmap7k(interaction: discord.Interaction, nombre:str, puntos:int, link:str, diff:str, mods:str, clear:str):
+            id_canal_validacion = 1114217138819973171
             channel = self.bot.get_channel(id_canal_validacion)
 
             message_content = f"Nombre: {nombre}\nPuntos: {puntos}\nLink: {link}\nDiff: {diff}\nMods: {mods}\nClear: {clear}"
@@ -178,26 +178,5 @@ class Commandset:
                             )
             await interaction.response.send_message(embed=embed,
                                                     ephemeral=True)
-            
-        @self.bot.event
-        async def on_raw_reaction_add(payload):
-            canal_id = 1113157312723550339
-            output_channel_id = 1113929255517171742
-            if payload.channel_id == canal_id:
-                channel = self.bot.get_channel(payload.channel_id)
-                message = await channel.fetch_message(payload.message_id)
-                content = message.content.split("\n")
-                nombre = content[0].split(": ")[1]
-                puntos = int(content[1].split(": ")[1])
-                link = content[2].split(": ")[1]
-                diff = content[3].split(": ")[1]
-                mods = content[4].split(": ")[1]
-                clear = content[5].split(": ")[1]
-
-                self.start_db_connection()
-                self.insert("INSERT INTO public.tntdet (nombre, puntos, link, diff, mods, clear) VALUES ('{}', {}, '{}', '{}', '{}', '{}')".format(nombre, puntos, link, diff, mods, clear))
-
-                await message.delete()
-                output_channel = self.bot.get_channel(output_channel_id)
-                await output_channel.send(f"Se ha rankeado el mapa de ETTERNA **{nombre}-{diff}** con el requerimiento de: **{clear}** y con el valor de **{puntos}** puntos.")
+        
         
