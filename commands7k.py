@@ -3,7 +3,7 @@ import psycopg2
 from tabulate import tabulate
 import math
 import asyncio
-
+from constants import *
 
 class Commands7k:
     def __init__(self, bot) -> None:
@@ -63,7 +63,6 @@ class Commands7k:
             except Exception as e:
                 print(e)
 
-       
         @self.bot.tree.command(name="clear7k")
         async def clear(interaction: discord.Interaction):
             msg = (
@@ -74,7 +73,6 @@ class Commands7k:
 
         @self.bot.tree.command(name="tabla7k")
         async def tabla7k(interaction: discord.Interaction):
-            
             results = self.query("SELECT * FROM public.tntd7k ORDER BY id")
             
             # Obtener los encabezados de las columnas de la tabla
@@ -83,18 +81,16 @@ class Commands7k:
             for row in results:
                 table_rows.append(row)
 
-            rows_per_page = 8 # Número de filas por página
-            num_pages = math.ceil(len(table_rows) / rows_per_page)
-
+            num_pages = math.ceil(len(table_rows) / ROWS_PER_PAGE)
 
             embed_list = []
             for page_num in range(num_pages):
-                start_index = page_num * rows_per_page
-                end_index = start_index + rows_per_page
+                start_index = page_num * ROWS_PER_PAGE
+                end_index = start_index + ROWS_PER_PAGE
                 page_rows = table_rows[start_index:end_index]
 
                 page_embed = discord.Embed(
-                title=f"Tabla de 7k (Página {page_num + 1}/{num_pages})"
+                    title=f"Tabla de 7k (Página {page_num + 1}/{num_pages})"
                 )
                 
                 for row in page_rows:
@@ -136,37 +132,27 @@ class Commands7k:
 
         @self.bot.tree.command(name="players7k")
         async def players7k(interaction: discord.Interaction):
-            # Hacer consulta SQL
             results = self.query("SELECT NOMBRE, PUNTOS FROM public.players7k WHERE PUNTOS != '0'")
-
             # Ordenar los resultados de mayor a menor puntos
             sorted_results = sorted(
                 results,
                 key=lambda row: row[1],
                 reverse=True
                 )
-
-            # Crear headers de la tabla
             headers = ['Nombre', 'Puntos']
-
-            # Crear la lista en forma de tabla
             formatted_player_list = (
                 tabulate(sorted_results, headers, tablefmt='pipe')
                 )
-
-            # Formatear los resultados como un mensaje de Discord
             embed = discord.Embed(
                 title="Lista de jugadores de 7k.",
                 description=f'```\n{formatted_player_list}\n```',
                 color=discord.Color.blue()
                 )
-
             await interaction.response.send_message(embed=embed)
 
         @self.bot.tree.command(name="requestmap7k")
         async def requestmap7k(interaction: discord.Interaction, nombre:str, puntos:int, link:str, diff:str, mods:str, clear:str):
-            id_canal_validacion = 1114214848990023773
-            channel = self.bot.get_channel(id_canal_validacion)
+            channel = self.bot.get_channel(ID_CANAL_VALIDACION_7K)
 
             message_content = f"Nombre: {nombre}\nPuntos: {puntos}\nLink: {link}\nDiff: {diff}\nMods: {mods}\nClear: {clear}"
             await channel.send(message_content)
@@ -178,4 +164,3 @@ class Commands7k:
                             )
             await interaction.response.send_message(embed=embed,
                                                     ephemeral=True)
-            

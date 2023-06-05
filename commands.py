@@ -1,8 +1,12 @@
 import discord
 import psycopg2
+import requests
 from tabulate import tabulate
 import math
 import asyncio
+from constants import *
+from PIL import Image
+from io import BytesIO
 
 ayuda_comandos = {
     "/players": "Muestra la leaderboard con los puntos actuales, también esta /playerset para etterna y /players7k para 7k. ENGLISH: Shows players, pretty self explanatory",
@@ -73,15 +77,14 @@ class Commands:
 
         @self.bot.event
         async def on_member_join(member):  # No se si funciona porque discord es un mierdolo y me ha dicho q he excedido el numero maximo de requests a mi bot :D
-            welcome_chann_id = 1112809557396299777
-            welcome_chann = self.bot.get_channel(welcome_chann_id)
+            channel = self.bot.get_channel(WELCOME_CHANNEL_ID)
 
             msg = (
                 f'Bienvenido/a {member.mention} a TRY NOT TO DELTA! '
                 f'Esperemos que te lo pases bien por aquí!'
             )
 
-            await welcome_chann.send(msg)
+            await channel.send(msg)
 
         @self.bot.tree.command(name="clear")
         async def clear(interaction: discord.Interaction):
@@ -93,7 +96,7 @@ class Commands:
 
         @self.bot.tree.command(name="tabla")
         async def tabla(interaction: discord.Interaction):
-            
+
             results = self.query("SELECT * FROM public.tntd ORDER BY id")
             
             # Obtener los encabezados de las columnas de la tabla
@@ -102,18 +105,16 @@ class Commands:
             for row in results:
                 table_rows.append(row)
 
-            rows_per_page = 8 # Número de filas por página
-            num_pages = math.ceil(len(table_rows) / rows_per_page)
-
+            num_pages = math.ceil(len(table_rows) / ROWS_PER_PAGE)
 
             embed_list = []
             for page_num in range(num_pages):
-                start_index = page_num * rows_per_page
-                end_index = start_index + rows_per_page
+                start_index = page_num * ROWS_PER_PAGE
+                end_index = start_index + ROWS_PER_PAGE
                 page_rows = table_rows[start_index:end_index]
 
                 page_embed = discord.Embed(
-                title=f"Tabla de 4k (Página {page_num + 1}/{num_pages})"
+                    title=f"Tabla de 4k (Página {page_num + 1}/{num_pages})"
                 )
                 
                 for row in page_rows:
@@ -153,10 +154,8 @@ class Commands:
                 except asyncio.TimeoutError:
                     break
 
-
         @self.bot.tree.command(name="players")
         async def players(interaction: discord.Interaction):
-            # Hacer consulta SQL
             results = self.query("SELECT NOMBRE, PUNTOS FROM public.players WHERE PUNTOS != '0'")
 
             # Ordenar los resultados de mayor a menor puntos
@@ -165,28 +164,20 @@ class Commands:
                 key=lambda row: row[1],
                 reverse=True
                 )
-
-            # Crear headers de la tabla
             headers = ['Nombre', 'Puntos']
-
-            # Crear la lista en forma de tabla
             formatted_player_list = (
                 tabulate(sorted_results, headers, tablefmt='pipe')
                 )
-
-            # Formatear los resultados como un mensaje de Discord
             embed = discord.Embed(
                 title="Lista de jugadores de 4k.",
                 description=f'```\n{formatted_player_list}\n```',
                 color=discord.Color.blue()
                 )
-
             await interaction.response.send_message(embed=embed)
 
         @self.bot.tree.command(name="requestmap")
         async def requestmap(interaction: discord.Interaction, nombre:str, puntos:int, link:str, diff:str, mods:str, clear:str):
-            id_canal_validacion = 1113157312723550339
-            channel = self.bot.get_channel(id_canal_validacion)
+            channel = self.bot.get_channel(ID_CANAL_VALIDACION_4K)
 
             message_content = f"Nombre: {nombre}\nPuntos: {puntos}\nLink: {link}\nDiff: {diff}\nMods: {mods}\nClear: {clear}"
             await channel.send(message_content)
@@ -201,18 +192,14 @@ class Commands:
             
         @self.bot.event
         async def on_raw_reaction_add(payload):
-            canal_id_1 = 1113157312723550339
-            canal_id_2 = 1114214848990023773
-            canal_id_3 = 1114217138819973171
-            if payload.channel_id == canal_id_1:
-                await handle_reaction_command_1(payload)
-            elif payload.channel_id == canal_id_2:
-                await handle_reaction_command_2(payload)
-            elif payload.channel_id == canal_id_3:
-                await handle_reaction_command_3(payload)
-        async def handle_reaction_command_1(payload):
-            output_channel_id = 1113929255517171742
+            if payload.channel_id == CANAL_ID_4K:
+                await handle_reaction_command_4k(payload)
+            elif payload.channel_id == CANAL_ID_7K:
+                await handle_reaction_command_7k(payload)
+            elif payload.channel_id == CANAL_ID_ET:
+                await handle_reaction_command_et(payload)
 
+        async def handle_reaction_command_4k(payload):
             channel = self.bot.get_channel(payload.channel_id)
             message = await channel.fetch_message(payload.message_id)
             content = message.content.split("\n")
@@ -227,12 +214,10 @@ class Commands:
             self.insert("INSERT INTO public.tntd (nombre, puntos, link, diff, mods, clear) VALUES ('{}', {}, '{}', '{}', '{}', '{}')".format(nombre, puntos, link, diff, mods, clear))
 
             await message.delete()
-            output_channel = self.bot.get_channel(output_channel_id)
+            output_channel = self.bot.get_channel(OUTPUT_CHANNEL_4K_ID)
             await output_channel.send(f"Se ha rankeado el mapa de 4k **{nombre}-{diff}** con el requerimiento de: **{clear}** y con el valor de **{puntos}** puntos.")
 
-        async def handle_reaction_command_2(payload):
-            output_channel_id = 1114214734015766599
-
+        async def handle_reaction_command_7k(payload):
             channel = self.bot.get_channel(payload.channel_id)
             message = await channel.fetch_message(payload.message_id)
             content = message.content.split("\n")
@@ -247,12 +232,10 @@ class Commands:
             self.insert("INSERT INTO public.tntd7k (nombre, puntos, link, diff, mods, clear) VALUES ('{}', {}, '{}', '{}', '{}', '{}')".format(nombre, puntos, link, diff, mods, clear))
 
             await message.delete()
-            output_channel = self.bot.get_channel(output_channel_id)
+            output_channel = self.bot.get_channel(OUTPUT_CHANNEL_7K_ID)
             await output_channel.send(f"Se ha rankeado el mapa  de 7k **{nombre}-{diff}** con el requerimiento de: **{clear}** y con el valor de **{puntos}** puntos.")
 
-        async def handle_reaction_command_3(payload):
-            output_channel_id = 1114217099775189023
-
+        async def handle_reaction_command_et(payload):
             channel = self.bot.get_channel(payload.channel_id)
             message = await channel.fetch_message(payload.message_id)
             content = message.content.split("\n")
@@ -267,24 +250,15 @@ class Commands:
             self.insert("INSERT INTO public.tntdet (nombre, puntos, link, diff, mods, clear) VALUES ('{}', {}, '{}', '{}', '{}', '{}')".format(nombre, puntos, link, diff, mods, clear))
 
             await message.delete()
-            output_channel = self.bot.get_channel(output_channel_id)
+            output_channel = self.bot.get_channel(OUTPUT_CHANNEL_ET_ID)
             await output_channel.send(f"Se ha rankeado el mapa de etterna **{nombre}-{diff}** con el requerimiento de: **{clear}** y con el valor de **{puntos}** puntos.")
-
-
-
-
 
         @self.bot.tree.command(name="ayuda")
         async def ayuda(interaction: discord.Interaction):
-            # Ruta de la imagen que quieres enviar
-            image_path = 'C:/Users/Alejandro/Desktop/BOT_DISCORD/IMG_20230309_161106.jpg'
-
-            # Cargar la imagen como un objeto de archivo discord.File
-            file = discord.File(image_path, filename='IMG_20230309_161106.jpg')
-
-            # Mensaje con el contenido de ayuda
+            img_url = 'https://media.discordapp.net/attachments/851840942675722303/1115056731354038382/image.jpg'
+            response = requests.get(img_url)
+            image = Image.open(BytesIO(response.content))
+            image.save("image.jpg")
+            file = discord.File("image.jpg")
             msg = '\n'.join([f"{key}: {value}" for key, value in ayuda_comandos.items()])
-
-            # Enviar el mensaje con la imagen adjunta
             await interaction.response.send_message(content=msg, file=file)
-            
