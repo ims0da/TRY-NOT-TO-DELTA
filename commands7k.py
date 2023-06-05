@@ -5,7 +5,6 @@ import math
 import asyncio
 from constants import *
 
-
 class Commands7k:
     def __init__(self, bot) -> None:
         self.bot = bot

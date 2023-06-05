@@ -96,6 +96,7 @@ class Commands:
 
         @self.bot.tree.command(name="tabla")
         async def tabla(interaction: discord.Interaction):
+
             results = self.query("SELECT * FROM public.tntd ORDER BY id")
             
             # Obtener los encabezados de las columnas de la tabla
@@ -156,6 +157,7 @@ class Commands:
         @self.bot.tree.command(name="players")
         async def players(interaction: discord.Interaction):
             results = self.query("SELECT NOMBRE, PUNTOS FROM public.players WHERE PUNTOS != '0'")
+
             # Ordenar los resultados de mayor a menor puntos
             sorted_results = sorted(
                 results,
