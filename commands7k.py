@@ -32,7 +32,6 @@ def leer_mapas_jugados(player):
         player_map_data = data[player]
         return player_map_data
 
-
 class Commands7k:
     def __init__(self, bot) -> None:
         self.bot = bot
