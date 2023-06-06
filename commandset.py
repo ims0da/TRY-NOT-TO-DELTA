@@ -107,7 +107,7 @@ class Commandset:
                 played_map_data = leer_mapas_jugados(player)
 
             if table_map_id in played_map_data:
-                await interaction.followup.send("Ya has jugado ese mapa.")
+                await interaction.followup.send("Ya has jugado ese mapa.", ephemeral=True)
             else:
                 try:
                     escribir_mapas_jugados(player, table_map_id)
