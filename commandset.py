@@ -4,6 +4,33 @@ from tabulate import tabulate
 import math
 import asyncio
 from constants import *
+import json
+
+
+def crear_jugador_mapas_jugados(player: str):
+    with open("mapas_jugados_et.json", "r") as raw_data:
+        map_data = json.load(raw_data)
+
+    with open("mapas_jugados_et.json", "w") as raw_data:
+        map_data[player] = []
+        json.dump(map_data, raw_data, indent=4)
+
+
+def escribir_mapas_jugados(player: str, map_id: int):
+    with open("mapas_jugados_et.json", "r") as raw_data:
+        data = json.load(raw_data)
+        data_list = data[player]
+        data_list.append(map_id)
+
+    with open("mapas_jugados_et.json", "w") as raw_data:
+        json.dump(data, raw_data, indent=4)
+
+
+def leer_mapas_jugados(player):
+    with open("mapas_jugados_et.json", "r") as raw_data:
+        data = json.load(raw_data)
+        player_map_data = data[player]
+        return player_map_data
 
 
 class Commandset:
@@ -39,11 +66,12 @@ class Commandset:
         # Devolver el resultado
         return results
 
-    def insert(self, string: str):  # <- este es lo mismo que el metodo query de arriba, solo que cuando quieres insertar, modificar o eliminar, no puedes hacer un fetch.
+    def insert(self, string: str, *args):  # <- este es lo mismo que el metodo query de arriba, solo que cuando quieres insertar, modificar o eliminar, no puedes hacer un fetch.
         self.start_db_connection()  # <- por eso no hay un return, porque no hay nada que devolver, solo se ejecuta la consulta y ya, es digamos "interno"
 
         cursor = self.conn.cursor()
-        cursor.execute(string)
+        print(string, args)
+        cursor.execute(string, args)
 
         # Si la consulta es una operación de modificación (como INSERT, UPDATE o DELETE),
         # puedes realizar un commit en la conexión
@@ -65,12 +93,59 @@ class Commandset:
                 print(e)
 
         @self.bot.tree.command(name="clearet")
-        async def clearet(interaction: discord.Interaction):
+        async def clearet(interaction: discord.Interaction, player: str, table_map_id: int):
             msg = (
-                'Espero que no estés usando basura, '
-                'enseguida se te asignarán los puntos.'
-                )
+                'Espero que no estés usando basura, enseguida se te asignarán los puntos.\n'
+                '(Cualquier uso malicioso de este comando será castigado)'
+            )
             await interaction.response.send_message(msg, ephemeral=True)
+
+            try:
+                played_map_data = leer_mapas_jugados(player)
+            except KeyError:
+                crear_jugador_mapas_jugados(player)
+                played_map_data = leer_mapas_jugados(player)
+
+            if table_map_id in played_map_data:
+                await interaction.followup.send("Ya has jugado ese mapa.")
+            else:
+                try:
+                    escribir_mapas_jugados(player, table_map_id)
+                    player_points = self.query(f"SELECT puntos FROM public.playerset WHERE nombre = '{player}';")
+                    player_points = player_points[0][0]
+                    map_points = self.query(f"SELECT puntos FROM public.tntdet WHERE id = '{table_map_id}';")
+                    map_points = map_points[0][0]
+                    final_points = int(player_points) + int(map_points)
+                except IndexError:
+                    await interaction.followup.send(
+                        "No se ha encontrado ese jugador. Pidele a un admin que lo agregue.",
+                        ephemeral=True
+                    )
+
+                else:
+                    self.insert(f"UPDATE public.playerset SET puntos = %s WHERE nombre = %s;", final_points, player)
+
+                    msg = (
+                        f"Jugador: {player}, Puntos: {final_points}"
+                    )
+                    embed = discord.Embed(
+                        title="Puntos actualizados",
+                        description=f"```{msg}```"
+                    )
+                    await interaction.followup.send(embed=embed, ephemeral=True)
+
+                    channel = self.bot.get_channel(LOG_CLEAR_CHANNEL_ID)
+                    msg = (f"Usuario: {interaction.user}\n"
+                           "Comando utilizado: /clear (Tabla Etterna)\n"
+                           f"Parámetros:\n"
+                           f"Player: {player}, Map_ID: {table_map_id}, Puntos sumados: {map_points}")
+                    embed_msg = discord.Embed(
+                        title="Comando clear ejecutado",
+                        description=f"```{msg}```",
+                        color=discord.Color.blue()
+                    )
+
+                    await channel.send(embed=embed_msg)
 
         @self.bot.tree.command(name="tablaet")
         async def tablaet(interaction: discord.Interaction):
