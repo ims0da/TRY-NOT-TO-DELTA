@@ -8,7 +8,7 @@ from io import BytesIO
 # DATABASE
 def start_db_connection():
     connection = psycopg2.connect(
-        host="localhost",
+        host="162.55.178.187",
         port="5432",
         database="TRY_NOT_TO_DELTA",
         user="postgres",
@@ -17,24 +17,32 @@ def start_db_connection():
     return connection
 
 
-def sql(action, string, args):
-    conn = psycopg2.connect(database="TRY_NOT_TO_DELTA", user="postgres", password="admin", host="162.55.178.187", port="5432")
+def sql(operation: str, string: str, *args):
+    results = None
+    conn = start_db_connection()
     cursor = conn.cursor()
+    cursor.execute(string, args)
 
-    if action == "insert":
-        cursor.execute(string, args)
+    if operation == "insert":
         conn.commit()
+    elif operation == "query":
+        results = cursor.fetchall()
 
     cursor.close()
     conn.close()
+    return results
 
 
-def crear_mensaje_cmd_clear(interaction, player, table_map_id, map_points):
-    msg = (f"Usuario: {interaction.user.name}\n"
-           "Comando utilizado: /clear (Tabla 4K)\n"
+
+
+def crear_mensaje_cmd_clear(interaction, nombre, id_mapa, clear):
+    msg = (f"Player: {interaction.user.name}\n"
+           "Comando utilizado: /clear \n"
            f"Parámetros:\n"
-           f"Player: {player}, Map_ID: {table_map_id},")
+           f"Player: {nombre}, Map_ID: {id_mapa}, clear: {clear}")
     return msg
+
+
 
 
 
