@@ -11,6 +11,8 @@ class TNTDBotCommands(CommandTree):
     def __init__(self, client):
         super().__init__(client)
 
+        
+
         @self.command(name="clear")
         async def clear(interaction: discord.Interaction, modo: str, nombre: str, id_mapa: int, clear: str):
             fnc.sql(
@@ -35,12 +37,11 @@ class TNTDBotCommands(CommandTree):
             )
             await channel.send(embed=embed_msg)
 
+
+
         @self.command(name="tabla")
         async def tabla(interaction: discord.Interaction, modo: str):
             modo = modo.lower()
-            # Esto se podría hacer de la siguiente manera results = fnc.sql("query", "SELECT * FROM public.bd_mapas WHERE modo = '{modo}' ORDER BY id",)
-            # Nos ahorramos un monton de codigo el problema es que creo que se buggea un poco al intentarlo almenos la ultima vez que lo intente yo mismo.
-            # Si alguien tiene el tiempo y le apetece que intente hacerlo asi :D
             if modo == "et" or modo == "etterna":
                 results = fnc.sql("query", "SELECT * FROM public.bd_mapas WHERE modo = 'et' ORDER BY id",)
             elif modo == "7k":
@@ -140,8 +141,8 @@ class TNTDBotCommands(CommandTree):
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        @self.command(name="help")
-        async def helptntd(interaction: discord.Interaction, Language_Idioma="Spanish"):
+        @self.command(name="ayuda")
+        async def ayuda(interaction: discord.Interaction):
             fnc.obtener_imagen_notpx()
             file = discord.File("image.jpg")
             msg = '\n'.join([f"{key}: {value}" for key, value in AYUDA_COMANDOS.items()])
