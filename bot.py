@@ -12,48 +12,43 @@ class TNTDBotCommands(CommandTree):
         super().__init__(client)
 
         @self.command(name="clear")
-        async def clear(interaction: discord.Interaction, modo: str, player: str, table_map_id: int):
-            msg = (
-                "Espero que no estés usando basura, enseguida se te asignarán los puntos.\n"
+        async def clear(interaction: discord.Interaction, modo: str, nombre: str, id_mapa: int, clear: str):
+            fnc.sql(
+                "insert",
+                "INSERT INTO public.submissions (modo, nombre, id_mapa, clear) VALUES (%s, %s, %s, %s)",
+                modo, nombre, id_mapa, clear
             )
-            await interaction.response.send_message(msg, ephemeral=True)
+            embed = discord.Embed(
+                title="Your play has been sent!",
+                description="Please, be patient.",
+                color=discord.Color.green()
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
-            try:
-                played_map_data = fnc.leer_mapas_jugados(player, modo)
-            except KeyError:
-                fnc.crear_jugador_mapas_jugados(player, modo)
-                played_map_data = fnc.leer_mapas_jugados(player, modo)
-
-            if table_map_id in played_map_data:
-                await interaction.followup.send("Ya has jugado ese mapa.")
-            else:
-                try:
-                    final_points, map_points = fnc.calcular_puntos(player=player, table_map_id=table_map_id, modo=modo)
-                except IndexError:
-                    await interaction.followup.send("No se ha encontrado ese jugador. Pidele a un admin que lo agregue",
-                                                    ephemeral=True)
-                else:
-                    msg = f"Jugador: {player}, Puntos: {final_points}"
-                    embed = discord.Embed(title="Puntos actualizados", description=f"```{msg}```")
-                    await interaction.followup.send(embed=embed, ephemeral=True)
-
-                    channel = client.get_channel(LOG_CLEAR_CHANNEL_ID)
-                    msg = fnc.crear_mensaje_cmd_clear(interaction, player, table_map_id, map_points)
-                    embed_msg = discord.Embed(title="Comando clear ejecutado", description=f"```{msg}```", color=discord.Color.blue())
-                    await channel.send(embed=embed_msg)
+            channel = client.get_channel(LOG_CLEAR_CHANNEL_ID)
+            msg = fnc.crear_mensaje_cmd_clear(interaction, nombre, id_mapa, clear)
+            print(f"msg: {msg}")
+            embed_msg = discord.Embed(
+                title="Comando clear ejecutado",
+                description=f"```{msg}```",
+                color=discord.Color.blue()
+            )
+            await channel.send(embed=embed_msg)
 
         @self.command(name="tabla")
         async def tabla(interaction: discord.Interaction, modo: str):
             modo = modo.lower()
-            if modo == "etterna":
-                modo = "et"
-            if modo == "7k":
-                results = fnc.sql("query", "SELECT * FROM public.tntd7k ORDER BY id")
-            elif modo == "et":
-                results = fnc.sql("query", "SELECT * FROM public.tntdet ORDER BY id")
+            # Esto se podría hacer de la siguiente manera results = fnc.sql("query", "SELECT * FROM public.bd_mapas WHERE modo = '{modo}' ORDER BY id",)
+            # Nos ahorramos un monton de codigo el problema es que creo que se buggea un poco al intentarlo almenos la ultima vez que lo intente yo mismo.
+            # Si alguien tiene el tiempo y le apetece que intente hacerlo asi :D
+            if modo == "et" or modo == "etterna":
+                results = fnc.sql("query", "SELECT * FROM public.bd_mapas WHERE modo = 'et' ORDER BY id",)
+            elif modo == "7k":
+                results = fnc.sql("query", "SELECT * FROM public.bd_mapas WHERE modo = '7k' ORDER BY id")
+            elif modo == "4k":
+                results = fnc.sql("query", "SELECT * FROM public.bd_mapas WHERE modo = '4k' ORDER BY id")
             else:
-                results = fnc.sql("query", "SELECT * FROM public.tntd ORDER BY id")
-
+                await interaction.followup.send("modo incorrecto.")
             table_rows = []
             for row in results:
                 table_rows.append(row)
@@ -109,51 +104,58 @@ class TNTDBotCommands(CommandTree):
         @self.command(name="players")
         async def players(interaction: discord.Interaction, modo: str):
             modo = modo.lower()
-            if modo == "etterna":
-                modo = "et"
-            if modo == "7k":
-                results = fnc.sql("query", "SELECT NOMBRE, PUNTOS FROM public.players7k WHERE PUNTOS != '0'")
-            elif modo == "etterna":
-                results = fnc.sql("query", "SELECT NOMBRE, PUNTOS FROM public.playerset WHERE PUNTOS != '0'")
+            if modo == "etterna" or modo == "et":
+                results = fnc.sql("query", "SELECT NOMBRE, puntosetterna FROM public.bd_players")
+            elif modo == "7k":
+                results = fnc.sql("query", "SELECT NOMBRE, puntos7k FROM public.bd_players")
+            elif modo == "4k":
+                results = fnc.sql("query", "SELECT NOMBRE, puntos4k FROM public.bd_players")
             else:
-                results = fnc.sql("query", "SELECT NOMBRE, PUNTOS FROM public.players WHERE PUNTOS != '0'")
+                await interaction.followup.send("modo incorrecto.")
 
             sorted_results = sorted(results, key=lambda row: row[1], reverse=True)
             headers = ["Nombre", "Puntos"]
             formatted_player_list = (tabulate(sorted_results, headers, tablefmt="pipe"))
-            embed = discord.Embed(title="Lista de jugadores de 4k.", description=f"```\n{formatted_player_list}\n```",
+            embed = discord.Embed(title=f"Lista de jugadores de {modo}.", description=f"```\n{formatted_player_list}\n```",
                                   color=discord.Color.blue())
             await interaction.response.send_message(embed=embed)
 
-        # TODO: Añadir parametro "Modo" (4k, 7k, et)
         @self.command(name="requestmap")
         async def requestmap(interaction: discord.Interaction, modo: str, nombre: str, puntos: int, link: str, diff: str, mods: str, clear: str):
             modo = modo.lower()
-            if modo == "etterna":
-                modo = "et"
-            if modo == "7k":
-                channel = client.get_channel(ID_CANAL_VALIDACION_7K)
-            elif modo == "et":
+            if modo == "etterna" or modo == "et":
                 channel = client.get_channel(ID_CANAL_VALIDACION_ET)
-            else:
+            elif modo == "7k":
+                channel = client.get_channel(ID_CANAL_VALIDACION_7K)
+            elif modo == "4k":
                 channel = client.get_channel(ID_CANAL_VALIDACION_4K)
-            message_content = f"Nombre: {nombre}\nPuntos: {puntos}\nLink: {link}\nDiff: {diff}\nMods: {mods}\nClear: {clear}"
+            else:
+                await interaction.followup.send("modo incorrecto.")
+            message_content = f"Nombre: {nombre}\nPuntos: {puntos}\nLink: {link}\nDiff: {diff}\nMods: {mods}\nClear: {clear}\nmodo: {modo}"
             await channel.send(message_content)
-
             embed = discord.Embed(
-                title="Tu mapa ha sido enviado a la cola de validación",
-                description="Se paciente, que no se cobra por esto :moyai:",
+                title="Your map has been sent to the validation queue.",
+                description="be patient, we dont get paid for this. :moyai:",
                 color=discord.Color.green()
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        @self.command(name="ayuda")
-        async def ayuda(interaction: discord.Interaction):
+        @self.command(name="help")
+        async def helptntd(interaction: discord.Interaction, Language_Idioma="Spanish"):
             fnc.obtener_imagen_notpx()
             file = discord.File("image.jpg")
             msg = '\n'.join([f"{key}: {value}" for key, value in AYUDA_COMANDOS.items()])
             await interaction.response.send_message(content=msg, file=file)
 
+        @self.command(name="register")
+        async def register(interaction: discord.Interaction, nombre: str):
+            fnc.sql("insert", "INSERT INTO public.bd_players (nombre, puntos4k, puntos7k, puntosetterna) VALUES (%s, 0, 0, 0)", (nombre,))
+            embed = discord.Embed(
+                title="you are registered.",
+                description="Please, remember you start at 0 points!",
+                color=discord.Color.green())
+            await interaction.response.send_message(embed=embed, ephemeral=True) 
+            
 
 class TNTDBot(discord.Client):
     async def on_ready(self):
@@ -189,15 +191,16 @@ class TNTDBot(discord.Client):
         diff = content[3].split(": ")[1].replace("'", "")
         mods = content[4].split(": ")[1]
         clear = content[5].split(": ")[1]
-
+        modo = content[6].split(": ")[1]
         try:
-            fnc.sql("insert", "INSERT INTO public.tntd (nombre, puntos, link, diff, mods, clear) VALUES (%s, %s, %s, %s, %s, %s)", nombre, puntos, link, diff, mods, clear)
+            fnc.sql("insert", "INSERT INTO public.bd_mapas_old (nombre, puntos, link, diff, mods, clear, modo) VALUES (%s, %s, %s, %s, %s, %s, %s)", nombre, puntos, link, diff, mods, clear, modo)
         except Exception as e:
             print(f"Something went wrong in handle_reaction_command_4k: {e}")
 
         await message.delete()
-        output_channel = self.get_channel(OUTPUT_CHANNEL_4K_ID)
-        await output_channel.send(f"Se ha rankeado el mapa de 4k **{nombre}-{diff}** con el requerimiento de: **{clear}** y con el valor de **{puntos}** puntos.")
+        #cambiar el output_channel 4k este de la polla a un canal global para todos los rankeds. 
+        output_channel = self.get_channel(RANKED_CHANNEL_ID)
+        await output_channel.send(f"Se ha rankeado el mapa de {modo} **{nombre}-{diff}** con el requerimiento de: **{clear}** y con el valor de **{puntos}** puntos.")
 
     async def handle_reaction_command_7k(self, payload):
         channel = self.get_channel(payload.channel_id)
@@ -209,21 +212,21 @@ class TNTDBot(discord.Client):
         diff = content[3].split(": ")[1].replace("'", "")
         mods = content[4].split(": ")[1]
         clear = content[5].split(": ")[1]
-
+        modo = content[6].split(": ")[1]
         try:
             fnc.sql("insert",
-                    "INSERT INTO public.tntd7k (nombre, puntos, link, diff, mods, clear) VALUES (%s, %s, %s, %s, %s, %s)",
-                    nombre, puntos, link, diff, mods, clear)
+                    "INSERT INTO public.bd_mapas_old (nombre, puntos, link, diff, mods, clear, modo) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                    nombre, puntos, link, diff, mods, clear, modo)
         except Exception as e:
             print(f"Something went wrong in handle_reaction_command_7k: {e}")
 
         await message.delete()
-        output_channel = self.get_channel(OUTPUT_CHANNEL_7K_ID)
+        output_channel = self.get_channel(RANKED_CHANNEL_ID)
         await output_channel.send(
-            f"Se ha rankeado el mapa  de 7k **{nombre}-{diff}** con el requerimiento de: **{clear}** y con el valor de **{puntos}** puntos.")
+            f"Se ha rankeado el mapa  de {modo} **{nombre}-{diff}** con el requerimiento de: **{clear}** y con el valor de **{puntos}** puntos.")
 
     async def handle_reaction_command_et(self, payload):
-        channel = self.get_channel(payload.channel_id)
+        channel = self.get_channel(payload.channel_id)  
         message = await channel.fetch_message(payload.message_id)
         content = message.content.split("\n")
         nombre = content[0].split(": ")[1].replace("'", "")
@@ -232,15 +235,15 @@ class TNTDBot(discord.Client):
         diff = content[3].split(": ")[1].replace("'", "")
         mods = content[4].split(": ")[1]
         clear = content[5].split(": ")[1]
-
+        modo = content[6].split(": ")[1]
         try:
             fnc.sql("insert",
-                    "INSERT INTO public.tntdet (nombre, puntos, link, diff, mods, clear) VALUES (%s, %s, %s, %s, %s, %s)",
-                    nombre, puntos, link, diff, mods, clear)
+                    "INSERT INTO public.bd_mapas_old (nombre, puntos, link, diff, mods, clear, modo) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                    nombre, puntos, link, diff, mods, clear, modo)
         except Exception as e:
             print(f"Something went wrong in handle_reaction_command_et: {e}")
 
         await message.delete()
-        output_channel = self.get_channel(OUTPUT_CHANNEL_ET_ID)
+        output_channel = self.get_channel(RANKED_CHANNEL_ID)
         await output_channel.send(
-            f"Se ha rankeado el mapa de etterna **{nombre}-{diff}** con el requerimiento de: **{clear}** y con el valor de **{puntos}** puntos.")
+            f"Se ha rankeado el mapa de  {modo} **{nombre}-{diff}** con el requerimiento de: **{clear}** y con el valor de **{puntos}** puntos.")

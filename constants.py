@@ -12,9 +12,17 @@ OUTPUT_CHANNEL_ET_ID = 1114217099775189023
 LOG_CLEAR_CHANNEL_ID = 1115336709840834560
 
 AYUDA_COMANDOS = {
-    "/players": "Muestra la leaderboard con los puntos actuales, también esta /playerset para etterna y /players7k para 7k. ENGLISH: Shows players, pretty self explanatory",
-    "/tabla": "Muestra la base de datos de mapas con el link del mapa, el nombre, la diff name, el mod y el clear, también esta /tablaet para etterna y /tabla7k para 7k. ENGLISH: Shows current maps in the database.",
-    "/clear": "Has hecho un clear a un mapa y requieres de tus puntos",
-    "/ayuda": "Muestra este comando ENGLISH: Shows this command.",
-    "/requestmap": "Requestea un mapa o pack el cual debe ser aprobado por playtesters. /requestmap para 4k, /requestmapet para etterna y /requestmap7k para 7k ENGLISH: Request a map."
+    "/players": "Muestra la leaderboard del modo elegido con los puntos actuales.",
+    "/tabla": "Muestra la base de datos de mapas del modo elegido con toda la informacion de estos.",
+    "/clear": "Has hecho un clear a un mapa y requieres de tus puntos.",
+    "/ayuda": "Muestra este comando.",
+    "/requestmap": "Requestea un mapa o pack el cual debe ser aprobado por playtesters."
+}
+
+AYUDA_COMANDOS_ENG = {
+    "/players": "Shows player leadboard for the selected mode, pretty self explanatory.",
+    "/tabla": "Shows current maps in the database of the selected mode.",
+    "/clear": "Adds the points of the map that you've cleared.",
+    "/ayuda": "Shows this command.",
+    "/requestmap": "ENGLISH: Request a map for the selected mode."
 }
