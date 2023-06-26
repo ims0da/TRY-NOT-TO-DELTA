@@ -1,8 +1,8 @@
 import psycopg2
-import json
 import requests
 from PIL import Image
 from io import BytesIO
+from bot_exceptions import *
 
 
 # DATABASE
@@ -33,8 +33,6 @@ def sql(operation: str, string: str, *args):
     return results
 
 
-
-
 def crear_mensaje_cmd_clear(interaction, nombre, id_mapa, clear):
     msg = (f"Player: {interaction.user.name}\n"
            "Comando utilizado: /clear \n"
@@ -43,12 +41,18 @@ def crear_mensaje_cmd_clear(interaction, nombre, id_mapa, clear):
     return msg
 
 
-
-
-
-
 def obtener_imagen_notpx():
     img_url = "https://media.discordapp.net/attachments/851840942675722303/1115056731354038382/image.jpg"
     response = requests.get(img_url)
     image = Image.open(BytesIO(response.content))
     image.save("image.jpg")
+
+
+def modo_check(modo, *args):
+    if modo in args:
+        print("Check sucessful.")
+        if modo == "etterna":
+            modo = "et"
+    else:
+        raise IncorrectModeError
+    return modo
