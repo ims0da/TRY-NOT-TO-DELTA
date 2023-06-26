@@ -11,9 +11,10 @@ RANKED_CHANNEL_ID = 1122290917206937641
 LOG_CLEAR_CHANNEL_ID = 1122291325321097407
 
 AYUDA_COMANDOS = {
-    "/players": "Muestra la leaderboard con los puntos actuales, también esta /playerset para etterna y /players7k para 7k. ENGLISH: Shows players, pretty self explanatory",
-    "/tabla": "Muestra la base de datos de mapas con el link del mapa, el nombre, la diff name, el mod y el clear, también esta /tablaet para etterna y /tabla7k para 7k. ENGLISH: Shows current maps in the database.",
+    "/players": "Muestra la leaderboard con los puntos actuales, modo: 4k,7k o et. ENGLISH: Shows players, pretty self explanatory modo = mode: 4k,7k or et",
+    "/tabla": "Muestra la base de datos de mapas con el link del mapa, el nombre, la diff name, el mod y el clear. modo: 4k,7k o et. ENGLISH: Shows current maps in the database. modo = mode: 4k,7k or et",
     "/clear": "Has hecho un clear a un mapa y requieres de tus puntos",
     "/ayuda": "Muestra este comando ENGLISH: Shows this command.",
-    "/requestmap": "Requestea un mapa o pack el cual debe ser aprobado por playtesters. /requestmap para 4k, /requestmapet para etterna y /requestmap7k para 7k ENGLISH: Request a map."
+    "/requestmap": "Requestea un mapa o pack el cual debe ser aprobado por playtesters. modo : 4k, 7k o et el resto es bastante intuitivo. ENGLISH: requests a map or a pack wich has to be aproved by the playtesters. modo means MODE. actual modes: 4k, 7k or et ",
+    "/register": "Registra al jugador en try not to delta, se te asignaran 0 puntos en todos los modos. ENGLISH: registers in try not to delta, you start at 0 points on every mode."
 }
