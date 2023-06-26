@@ -1,8 +1,8 @@
 import psycopg2
-import json
 import requests
 from PIL import Image
 from io import BytesIO
+from bot_exceptions import *
 
 
 # DATABASE
@@ -46,3 +46,13 @@ def obtener_imagen_notpx():
     response = requests.get(img_url)
     image = Image.open(BytesIO(response.content))
     image.save("image.jpg")
+
+
+def modo_check(modo, *args):
+    if modo in args:
+        print("Check sucessful.")
+        if modo == "etterna":
+            modo = "et"
+    else:
+        raise IncorrectModeError
+    return modo
