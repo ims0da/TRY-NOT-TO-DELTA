@@ -11,25 +11,39 @@ class TNTDBotCommands(CommandTree):
     def __init__(self, client):
         super().__init__(client)
 
+        
+
         @self.command(name="clear")
         async def clear(interaction: discord.Interaction, modo: str, nombre: str, id_mapa: int, clear: str):
-            fnc.sql("insert", "INSERT INTO public.submissions (modo, nombre, id_mapa, clear) VALUES (%s, %s, %s, %s)", (modo, nombre, id_mapa, clear))
+            fnc.sql(
+                "insert",
+                "INSERT INTO public.submissions (modo, nombre, id_mapa, clear) VALUES (%s, %s, %s, %s)",
+                modo, nombre, id_mapa, clear
+            )
             embed = discord.Embed(
                 title="Your play has been sent!",
                 description="Please, be patient.",
-                color=discord.Color.green())
-            await interaction.response.send_message(embed=embed, ephemeral=True) 
+                color=discord.Color.green()
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
             channel = client.get_channel(LOG_CLEAR_CHANNEL_ID)
             msg = fnc.crear_mensaje_cmd_clear(interaction, nombre, id_mapa, clear)
-            embed_msg = discord.Embed(title="Comando clear ejecutado", description=f"```{msg}```", color=discord.Color.blue())
+            print(f"msg: {msg}")
+            embed_msg = discord.Embed(
+                title="Comando clear ejecutado",
+                description=f"```{msg}```",
+                color=discord.Color.blue()
+            )
             await channel.send(embed=embed_msg)
+
+
 
         @self.command(name="tabla")
         async def tabla(interaction: discord.Interaction, modo: str):
             modo = modo.lower()
             if modo == "et" or modo == "etterna":
-                results = fnc.sql("query", "SELECT * FROM public.bd_mapas WHERE modo = 'et' ORDER BY id")
+                results = fnc.sql("query", "SELECT * FROM public.bd_mapas WHERE modo = 'et' ORDER BY id",)
             elif modo == "7k":
                 results = fnc.sql("query", "SELECT * FROM public.bd_mapas WHERE modo = '7k' ORDER BY id")
             elif modo == "4k":
@@ -186,7 +200,7 @@ class TNTDBot(discord.Client):
 
         await message.delete()
         #cambiar el output_channel 4k este de la polla a un canal global para todos los rankeds. 
-        output_channel = self.get_channel(OUTPUT_CHANNEL_4K_ID)
+        output_channel = self.get_channel(RANKED_CHANNEL_ID)
         await output_channel.send(f"Se ha rankeado el mapa de {modo} **{nombre}-{diff}** con el requerimiento de: **{clear}** y con el valor de **{puntos}** puntos.")
 
     async def handle_reaction_command_7k(self, payload):
@@ -208,7 +222,7 @@ class TNTDBot(discord.Client):
             print(f"Something went wrong in handle_reaction_command_7k: {e}")
 
         await message.delete()
-        output_channel = self.get_channel(OUTPUT_CHANNEL_7K_ID)
+        output_channel = self.get_channel(RANKED_CHANNEL_ID)
         await output_channel.send(
             f"Se ha rankeado el mapa  de {modo} **{nombre}-{diff}** con el requerimiento de: **{clear}** y con el valor de **{puntos}** puntos.")
 
@@ -231,6 +245,6 @@ class TNTDBot(discord.Client):
             print(f"Something went wrong in handle_reaction_command_et: {e}")
 
         await message.delete()
-        output_channel = self.get_channel(OUTPUT_CHANNEL_ET_ID)
+        output_channel = self.get_channel(RANKED_CHANNEL_ID)
         await output_channel.send(
             f"Se ha rankeado el mapa de  {modo} **{nombre}-{diff}** con el requerimiento de: **{clear}** y con el valor de **{puntos}** puntos.")
