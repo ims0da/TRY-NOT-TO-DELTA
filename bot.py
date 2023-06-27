@@ -103,22 +103,28 @@ class TNTDBotCommands(CommandTree):
                     except asyncio.TimeoutError:
                         break
 
+        # :D
         @self.command(name="players")
         async def players(interaction: discord.Interaction, modo: str):
             modo = modo.lower()
             try:
                 modo = fnc.modo_check(modo, "etterna", "et", "7k", "4k")
+                if modo == "et" or "etterna":
+                    results = fnc.sql("query",
+                                      "SELECT NOMBRE, puntosetterna FROM public.bd_players WHERE puntosetterna <> 0")
+                elif modo == "7k":
+                    results = fnc.sql("query", "SELECT NOMBRE, puntos7k FROM public.bd_players WHERE puntos7k <> 0")
+                elif modo == "4k":
+                    results = fnc.sql("query", "SELECT NOMBRE, puntos4k FROM public.bd_players WHERE puntos4k <> 0")
+                else:
+                    results = None
             except IncorrectModeError:
                 await interaction.response.send_message("modo incorrecto.")
             else:
-                if modo == "et":
-                    results = fnc.sql("query", "SELECT NOMBRE, puntosetterna FROM public.bd_players")
-                else:
-                    results = fnc.sql("query", "SELECT NOMBRE, %s FROM public.bd_players", f"puntos{modo}")
                 sorted_results = sorted(results, key=lambda row: row[1], reverse=True)
                 headers = ["Nombre", "Puntos"]
                 formatted_player_list = (tabulate(sorted_results, headers, tablefmt="pipe"))
-                embed = discord.Embed(title=f"Lista de jugadores de {modo}.",
+                embed = discord.Embed(title=f"{'Etterna' if modo == 'et' else modo} player list.",
                                       description=f"```\n{formatted_player_list}\n```",
                                       color=discord.Color.blue())
                 await interaction.response.send_message(embed=embed)
