@@ -103,6 +103,7 @@ class TNTDBotCommands(CommandTree):
                     except asyncio.TimeoutError:
                         break
 
+        # :D
         @self.command(name="players")
         async def players(interaction: discord.Interaction, modo: str):
             modo = modo.lower()
