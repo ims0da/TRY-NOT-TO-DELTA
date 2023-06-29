@@ -109,7 +109,7 @@ class TNTDBotCommands(CommandTree):
             modo = modo.lower()
             try:
                 modo = fnc.modo_check(modo, "etterna", "et", "7k", "4k")
-                if modo == "et" or "etterna":
+                if modo == "et" or modo == "etterna":
                     results = fnc.sql("query",
                                       "SELECT NOMBRE, puntosetterna FROM public.bd_players")
                 elif modo == "7k":
