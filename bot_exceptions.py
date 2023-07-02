@@ -1,4 +1,4 @@
 class IncorrectModeError(Exception):
-    """Raise when users inputted mode is not valid"""
+    """Raised when the user inputs an invalid mode."""
     def __str__(self):
-        return f"User inputted an invalid mode."
+        return "User inputted an invalid mode."
