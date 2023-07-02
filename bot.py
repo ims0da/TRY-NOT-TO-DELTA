@@ -9,12 +9,14 @@ import bot_exceptions as exc
 import typing
 
 
+# COMMANDS
 class TNTDBotCommands(CommandTree):
     def __init__(self, client):
         super().__init__(client)
 
         @self.command(name="clear")
         async def clear(interaction: discord.Interaction, modo: str, nombre: str, id_mapa: int, clear: str):
+            """Clears a map and adds the points to the player's score."""
             fnc.sql(
                 "insert",
                 "INSERT INTO public.submissions (modo, nombre, id_mapa, clear) VALUES (%s, %s, %s, %s)",
@@ -28,8 +30,8 @@ class TNTDBotCommands(CommandTree):
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
             channel = client.get_channel(const.LOG_CLEAR_CHANNEL_ID)
+            # Creates the message to be sent in the log channel
             msg = fnc.crear_mensaje_cmd_clear(interaction, nombre, id_mapa, clear)
-            print(f"msg: {msg}")
             embed_msg = discord.Embed(
                 title="Comando clear ejecutado",
                 description=f"```{msg}```",
@@ -39,8 +41,10 @@ class TNTDBotCommands(CommandTree):
 
         @self.command(name="tabla")
         async def tabla(interaction: discord.Interaction, modo: str):
+            """Shows the current maps in the database of the selected mode."""
             modo = modo.lower()
             try:
+                # Checks if the mode is correct
                 modo = fnc.modo_check(modo, "4k", "7k", "et", "etterna")
                 print(modo)
             except exc.IncorrectModeError:
@@ -106,8 +110,10 @@ class TNTDBotCommands(CommandTree):
         # :D
         @self.command(name="players")
         async def players(interaction: discord.Interaction, modo: str):
+            """Shows the current players in the database of the selected mode."""
             modo = modo.lower()
             try:
+                # Depending on the mode, the query will be different.
                 modo = fnc.modo_check(modo, "etterna", "et", "7k", "4k")
                 if modo == "et" or modo == "etterna":
                     results = fnc.sql("query",
@@ -121,8 +127,10 @@ class TNTDBotCommands(CommandTree):
             except exc.IncorrectModeError:
                 await interaction.response.send_message("modo incorrecto.")
             else:
+                # Sorts the results by points in descending order.
                 sorted_results = sorted(results, key=lambda row: row[1], reverse=True)
                 headers = ["Nombre", "Puntos"]
+                # Formats the results into a table. (tabulate) is a library that does this.
                 formatted_player_list = (tabulate(sorted_results, headers, tablefmt="pipe"))
                 embed = discord.Embed(title=f"{'Etterna' if modo == 'et' else modo} player list.",
                                       description=f"```\n{formatted_player_list}\n```",
@@ -132,6 +140,7 @@ class TNTDBotCommands(CommandTree):
         @self.command(name="requestmap")
         async def requestmap(interaction: discord.Interaction, modo: str, nombre: str, puntos: int, link: str,
                              diff: str, mods: str, clear: str):
+            """Request a map to be added to the database."""
             modo = modo.lower()
             channel = None
             try:
@@ -161,6 +170,7 @@ class TNTDBotCommands(CommandTree):
         @self.command(name="help")
         # Modulo "typing" importado sirve para implementar parametros opcionales.
         async def help(interaction: discord.Interaction, language: typing.Optional[str] = "Spanish"):
+            """Shows the help menu."""
             language = language.lower()
             fnc.obtener_imagen_notpx()
             file = discord.File("image.jpg")
@@ -186,6 +196,7 @@ class TNTDBotCommands(CommandTree):
 
         @self.command(name="register")
         async def register(interaction: discord.Interaction, nombre: str):
+            """Register yourself in the database."""
             fnc.sql("insert",
                     "INSERT INTO public.bd_players (nombre, puntos4k, puntos7k, puntosetterna) VALUES (%s, 0, 0, 0)",
                     (nombre,))
@@ -202,18 +213,21 @@ class TNTDBot(discord.Client):
         try:
             print("Sincronizando comandos...")
             tree = TNTDBotCommands(self)
+            # Syncs the commands with the server.
             synced = await tree.sync()
             print(f"Synced {len(synced)} command(s)")
         except Exception as e:
             print(e)
 
     async def on_raw_reaction_add(self, payload):
+        """Handles the reaction commands."""
         if payload.channel_id == const.ID_CANAL_VALIDACION_4K \
                 or payload.channel_id == const.ID_CANAL_VALIDACION_7K \
                 or payload.channel_id == const.ID_CANAL_VALIDACION_ET:
             await self.handle_reaction_command(payload)
 
     async def handle_reaction_command(self, payload):
+        """Handles the reaction commands."""
         channel = self.get_channel(payload.channel_id)
         message = await channel.fetch_message(payload.message_id)
         content = message.content.split("\n")
