@@ -2,7 +2,7 @@ import psycopg2
 import requests
 from PIL import Image
 from io import BytesIO
-from bot_exceptions import *
+import bot_exceptions as exc
 
 
 # DATABASE
@@ -18,6 +18,7 @@ def start_db_connection():
 
 
 def sql(operation: str, string: str, *args):
+    """operation: insert or query"""
     results = None
     conn = start_db_connection()
     cursor = conn.cursor()
@@ -34,6 +35,7 @@ def sql(operation: str, string: str, *args):
 
 
 def crear_mensaje_cmd_clear(interaction, nombre, id_mapa, clear):
+    """Crea un mensaje para el canal de logs de comandos."""
     msg = (f"Player: {interaction.user.name}\n"
            "Comando utilizado: /clear \n"
            f"Parámetros:\n"
@@ -49,10 +51,11 @@ def obtener_imagen_notpx():
 
 
 def modo_check(modo, *args):
+    # args: "et", "4k", "7k" etc
     if modo in args:
         print("Check sucessful.")
         if modo == "etterna":
             modo = "et"
     else:
-        raise IncorrectModeError
+        raise exc.IncorrectModeError
     return modo

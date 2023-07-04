@@ -2,19 +2,20 @@ import asyncio
 import discord
 from discord.app_commands import CommandTree
 from tabulate import tabulate
-from constants import *
+import constants as const
 import general_functions as fnc
 import math
-from bot_exceptions import *
+import bot_exceptions as exc
 import typing
 
-
+# COMMANDS
 class TNTDBotCommands(CommandTree):
     def __init__(self, client):
         super().__init__(client)
 
         @self.command(name="clear")
         async def clear(interaction: discord.Interaction, modo: str, nombre: str, id_mapa: int, clear: str):
+            """Clears a map and adds the points to the player's score."""
             fnc.sql(
                 "insert",
                 "INSERT INTO public.submissions (modo, nombre, id_mapa, clear) VALUES (%s, %s, %s, %s)",
@@ -27,7 +28,8 @@ class TNTDBotCommands(CommandTree):
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
-            channel = client.get_channel(LOG_CLEAR_CHANNEL_ID)
+            channel = client.get_channel(const.LOG_CLEAR_CHANNEL_ID)
+            # Creates the message to be sent in the log channel
             msg = fnc.crear_mensaje_cmd_clear(interaction, nombre, id_mapa, clear)
             print(f"msg: {msg}")
             embed_msg = discord.Embed(
@@ -39,11 +41,13 @@ class TNTDBotCommands(CommandTree):
 
         @self.command(name="tabla")
         async def tabla(interaction: discord.Interaction, modo: str):
+            """Shows the current maps in the database of the selected mode."""
+
             modo = modo.lower()
             try:
-                modo = fnc.modo_check(modo, "4k", "7k", "et", "etterna")
+                modo = fnc.modo_check(modo, "4k", "7k", "et", "etterna", "taiko")
                 print(modo)
-            except IncorrectModeError:
+            except exc.IncorrectModeError:
                 await interaction.response.send_message("modo incorrecto")
             else:
                 results = fnc.sql("query", "SELECT * FROM public.bd_mapas WHERE modo = %s ORDER BY id", modo)
@@ -51,12 +55,12 @@ class TNTDBotCommands(CommandTree):
                 for row in results:
                     table_rows.append(row)
 
-                num_pages = math.ceil(len(table_rows) / ROWS_PER_PAGE)
+                num_pages = math.ceil(len(table_rows) / const.ROWS_PER_PAGE)
 
                 embed_list = []
                 for page_num in range(num_pages):
-                    start_index = page_num * ROWS_PER_PAGE
-                    end_index = start_index + ROWS_PER_PAGE
+                    start_index = page_num * const.ROWS_PER_PAGE
+                    end_index = start_index + const.ROWS_PER_PAGE
                     page_rows = table_rows[start_index:end_index]
 
                     page_embed = discord.Embed(
@@ -103,12 +107,84 @@ class TNTDBotCommands(CommandTree):
                     except asyncio.TimeoutError:
                         break
 
+
+        @self.command(name="played")
+        async def played(interaction: discord.Interaction, modo: str, nombre: str):
+            """Gives a list of all the played maps of the player in the selected mode."""
+            modo = modo.lower()
+            try:
+                modo = fnc.modo_check(modo, "4k", "7k", "et", "etterna", "taiko")
+                print(modo)
+            except exc.IncorrectModeError:
+                await interaction.response.send_message("modo incorrecto")
+            else:
+                results = fnc.sql("query", f"""SELECT bm.id, bm.nombre, bm.link, bm.diff, bm.mods, bm.clear, s.nombre, bm.puntos, bm.clear from bd_mapas bm join submissions s on (bm.id = s.id_mapa)
+                                  where s.nombre = '{nombre}' and s.modo = '{modo}'
+                                  order by bm.puntos desc;""")
+                table_rows = []
+                for row in results:
+                    table_rows.append(row)
+
+                num_pages = math.ceil(len(table_rows) / const.ROWS_PER_PAGE)
+
+                embed_list = []
+                for page_num in range(num_pages):
+                    start_index = page_num * const.ROWS_PER_PAGE
+                    end_index = start_index + const.ROWS_PER_PAGE
+                    page_rows = table_rows[start_index:end_index]
+
+                    page_embed = discord.Embed(
+                        title=f"Top plays of {modo} from {nombre} (Página {page_num + 1}/{num_pages})"
+                    )
+
+                    for row in page_rows:
+                        page_embed.add_field(name=f"Mapa {row[0]}: ", value=f"[{row[1]} - {row[3]}]({row[2]})",
+                                             inline=True)
+                        page_embed.add_field(name="Puntos: ", value=f"{row[7]}", inline=True)
+                        page_embed.add_field(name="Requirement: ", value=f"{row[8]}", inline=True)
+                    embed_list.append(page_embed)
+                index = 0
+                try:
+                    await interaction.response.send_message(embed=embed_list[index])
+                except IndexError:
+                    await interaction.response.send_message("player has no maps played.")
+                canal = interaction.channel_id
+
+                message_history = client.get_channel(canal).history(limit=1)
+                last_message = message_history.ag_frame.f_locals.get('self').last_message
+
+                await last_message.add_reaction('⬅️')
+                await last_message.add_reaction('➡️')
+
+                def check(reaction, user):
+                    return user == interaction.user and str(reaction.emoji) in ['⬅️', '➡️']
+
+                while True:
+                    try:
+                        reaction, _ = await client.wait_for('reaction_add', timeout=60.0, check=check)
+
+                        if str(reaction.emoji) == '⬅️':
+                            index -= 1
+                            if index < 0:
+                                index = len(embed_list) - 1
+                        elif str(reaction.emoji) == '➡️':
+                            index += 1
+                            if index >= len(embed_list):
+                                index = 0
+
+                        await last_message.edit(embed=embed_list[index])
+                        await last_message.remove_reaction(reaction, interaction.user)
+                    except asyncio.TimeoutError:
+                        break
+
         # :D
         @self.command(name="players")
         async def players(interaction: discord.Interaction, modo: str):
+            """Shows the current players in the database of the selected mode."""
             modo = modo.lower()
             try:
-                modo = fnc.modo_check(modo, "etterna", "et", "7k", "4k")
+                # Depending on the mode, the query will be different.
+                modo = fnc.modo_check(modo, "etterna", "et", "7k", "4k", "taiko")
                 if modo == "et" or modo == "etterna":
                     results = fnc.sql("query",
                                       "SELECT NOMBRE, puntosetterna FROM public.bd_players")
@@ -116,9 +192,11 @@ class TNTDBotCommands(CommandTree):
                     results = fnc.sql("query", "SELECT NOMBRE, puntos7k FROM public.bd_players")
                 elif modo == "4k":
                     results = fnc.sql("query", "SELECT NOMBRE, puntos4k FROM public.bd_players")
+                elif modo == "taiko":
+                    results = fnc.sql("query", "SELECT NOMBRE, puntostaiko FROM public.bd_players")
                 else:
                     results = None
-            except IncorrectModeError:
+            except exc.IncorrectModeError:
                 await interaction.response.send_message("modo incorrecto.")
             else:
                 sorted_results = sorted(results, key=lambda row: row[1], reverse=True)
@@ -132,20 +210,22 @@ class TNTDBotCommands(CommandTree):
         @self.command(name="requestmap")
         async def requestmap(interaction: discord.Interaction, modo: str, nombre: str, puntos: int, link: str,
                              diff: str, mods: str, clear: str):
+            """Request a map to be added to the database."""
             modo = modo.lower()
             channel = None
             try:
-                modo = fnc.modo_check(modo, "et", "4k", "7k", "etterna")
-            except IncorrectModeError:
+                modo = fnc.modo_check(modo, "et", "4k", "7k", "etterna", "taiko")
+            except exc.IncorrectModeError:
                 await interaction.response.send_message("modo incorrecto.")
             else:
                 if modo == "et":
-                    channel = client.get_channel(ID_CANAL_VALIDACION_ET)
+                    channel = client.get_channel(const.ID_CANAL_VALIDACION_ET)
                 elif modo == "7k":
-                    channel = client.get_channel(ID_CANAL_VALIDACION_7K)
+                    channel = client.get_channel(const.ID_CANAL_VALIDACION_7K)
                 elif modo == "4k":
-                    channel = client.get_channel(ID_CANAL_VALIDACION_4K)
-
+                    channel = client.get_channel(const.ID_CANAL_VALIDACION_4K)
+                elif modo == "taiko":
+                    channel = client.get_channel(const.ID_CANAL_VALIDACION_TAIKO)
                 message_content = f"Nombre: {nombre}\nPuntos: {puntos}\nLink: {link}\nDiff: {diff}\nMods: {mods}\nClear: {clear}\nmodo: {modo}"
                 await channel.send(message_content)
                 embed = discord.Embed(
@@ -158,19 +238,20 @@ class TNTDBotCommands(CommandTree):
         @self.command(name="help")
         # Modulo "typing" importado sirve para implementar parametros opcionales.
         async def help(interaction: discord.Interaction, language: typing.Optional[str] = "Spanish"):
+            """Shows the help menu."""
             language = language.lower()
             fnc.obtener_imagen_notpx()
             file = discord.File("image.jpg")
             if language == "spanish":
                 embed = discord.Embed(
                     title="Command help",
-                    description='\n\n'.join([f"**{key}**: {value}" for key, value in AYUDA_COMANDOS.items()]),
+                    description='\n\n'.join([f"**{key}**: {value}" for key, value in const.AYUDA_COMANDOS.items()]),
                     color=discord.Color.red()
                 )
             elif language == "english":
                 embed = discord.Embed(
                     title="Command help",
-                    description='\n\n'.join([f"**{key}**: {value}" for key, value in AYUDA_COMANDOS_ENG.items()]),
+                    description='\n\n'.join([f"**{key}**: {value}" for key, value in const.AYUDA_COMANDOS_ENG.items()]),
                     color=discord.Color.red()
                 )
             else:
@@ -183,8 +264,9 @@ class TNTDBotCommands(CommandTree):
 
         @self.command(name="register")
         async def register(interaction: discord.Interaction, nombre: str):
+            """Register yourself in the database."""
             fnc.sql("insert",
-                    "INSERT INTO public.bd_players (nombre, puntos4k, puntos7k, puntosetterna) VALUES (%s, 0, 0, 0)",
+                    "INSERT INTO public.bd_players (nombre, puntos4k, puntos7k, puntosetterna, puntostaiko) VALUES (%s, 0, 0, 0, 0)",
                     (nombre,))
             embed = discord.Embed(
                 title="you are registered.",
@@ -205,12 +287,15 @@ class TNTDBot(discord.Client):
             print(e)
 
     async def on_raw_reaction_add(self, payload):
-        if payload.channel_id == ID_CANAL_VALIDACION_4K \
-                or payload.channel_id == ID_CANAL_VALIDACION_7K \
-                or payload.channel_id == ID_CANAL_VALIDACION_ET:
+        """Handles the reaction commands."""
+        if payload.channel_id == const.ID_CANAL_VALIDACION_4K \
+                or payload.channel_id == const.ID_CANAL_VALIDACION_7K \
+                or payload.channel_id == const.ID_CANAL_VALIDACION_ET  \
+                or payload.channel_id == const.ID_CANAL_VALIDACION_TAIKO:
             await self.handle_reaction_command(payload)
 
     async def handle_reaction_command(self, payload):
+        """Handles the reaction commands."""
         channel = self.get_channel(payload.channel_id)
         message = await channel.fetch_message(payload.message_id)
         content = message.content.split("\n")
@@ -229,6 +314,6 @@ class TNTDBot(discord.Client):
             print(f"Something went wrong in handle_reaction_command: {e}")
 
         await message.delete()
-        output_channel = self.get_channel(RANKED_CHANNEL_ID)
+        output_channel = self.get_channel(const.RANKED_CHANNEL_ID)
         await output_channel.send(
             f"Se ha rankeado el mapa de {modo} **{nombre}-{diff}** con el requerimiento de: **{clear}** y con el valor de **{puntos}** puntos.")
