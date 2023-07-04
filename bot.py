@@ -31,7 +31,6 @@ class TNTDBotCommands(CommandTree):
             channel = client.get_channel(const.LOG_CLEAR_CHANNEL_ID)
             # Creates the message to be sent in the log channel
             msg = fnc.crear_mensaje_cmd_clear(interaction, nombre, id_mapa, clear)
-            print(f"msg: {msg}")
             embed_msg = discord.Embed(
                 title="Comando clear ejecutado",
                 description=f"```{msg}```",
@@ -199,8 +198,10 @@ class TNTDBotCommands(CommandTree):
             except exc.IncorrectModeError:
                 await interaction.response.send_message("modo incorrecto.")
             else:
+                # Sorts the results by points in descending order.
                 sorted_results = sorted(results, key=lambda row: row[1], reverse=True)
                 headers = ["Nombre", "Puntos"]
+                # Formats the results into a table. (tabulate) is a library that does this.
                 formatted_player_list = (tabulate(sorted_results, headers, tablefmt="pipe"))
                 embed = discord.Embed(title=f"{'Etterna' if modo == 'et' else modo} player list.",
                                       description=f"```\n{formatted_player_list}\n```",
@@ -281,6 +282,7 @@ class TNTDBot(discord.Client):
         try:
             print("Sincronizando comandos...")
             tree = TNTDBotCommands(self)
+            # Syncs the commands with the server.
             synced = await tree.sync()
             print(f"Synced {len(synced)} command(s)")
         except Exception as e:
@@ -308,7 +310,8 @@ class TNTDBot(discord.Client):
         modo = content[6].split(": ")[1]
         try:
             fnc.sql("insert",
-                    "INSERT INTO public.bd_mapas_old (nombre, puntos, link, diff, mods, clear, modo) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                    "INSERT INTO public.bd_mapas_old (nombre, puntos, link, diff, mods, clear, modo) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s)",
                     nombre, puntos, link, diff, mods, clear, modo)
         except Exception as e:
             print(f"Something went wrong in handle_reaction_command: {e}")
@@ -316,4 +319,5 @@ class TNTDBot(discord.Client):
         await message.delete()
         output_channel = self.get_channel(const.RANKED_CHANNEL_ID)
         await output_channel.send(
-            f"Se ha rankeado el mapa de {modo} **{nombre}-{diff}** con el requerimiento de: **{clear}** y con el valor de **{puntos}** puntos.")
+            f"Se ha rankeado el mapa de {modo} **{nombre}-{diff}** con el requerimiento de: **{clear}**"
+            f"y con el valor de **{puntos}** puntos.")
