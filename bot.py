@@ -52,10 +52,10 @@ class TNTDBotCommands(CommandTree):
         @self.command(name="tabla")
         async def tabla(interaction: discord.Interaction, modo: str):
             """Shows the current maps in the database of the selected mode."""
+
             modo = modo.lower()
             try:
-                # Checks if the mode is correct
-                modo = fnc.modo_check(modo, "4k", "7k", "et", "etterna")
+                modo = fnc.modo_check(modo, "4k", "7k", "et", "etterna", "taiko")
                 print(modo)
             except exc.IncorrectModeError:
                 await interaction.response.send_message("modo incorrecto")
@@ -194,7 +194,7 @@ class TNTDBotCommands(CommandTree):
             modo = modo.lower()
             try:
                 # Depending on the mode, the query will be different.
-                modo = fnc.modo_check(modo, "etterna", "et", "7k", "4k")
+                modo = fnc.modo_check(modo, "etterna", "et", "7k", "4k", "taiko")
                 if modo == "et" or modo == "etterna":
                     results = fnc.sql("query",
                                       "SELECT NOMBRE, puntosetterna FROM public.bd_players")
@@ -202,6 +202,8 @@ class TNTDBotCommands(CommandTree):
                     results = fnc.sql("query", "SELECT NOMBRE, puntos7k FROM public.bd_players")
                 elif modo == "4k":
                     results = fnc.sql("query", "SELECT NOMBRE, puntos4k FROM public.bd_players")
+                elif modo == "taiko":
+                    results = fnc.sql("query", "SELECT NOMBRE, puntostaiko FROM public.bd_players")
                 else:
                     results = None
             except exc.IncorrectModeError:
@@ -224,7 +226,7 @@ class TNTDBotCommands(CommandTree):
             modo = modo.lower()
             channel = None
             try:
-                modo = fnc.modo_check(modo, "et", "4k", "7k", "etterna")
+                modo = fnc.modo_check(modo, "et", "4k", "7k", "etterna", "taiko")
             except exc.IncorrectModeError:
                 await interaction.response.send_message("modo incorrecto.")
             else:
@@ -303,7 +305,8 @@ class TNTDBot(discord.Client):
         """Handles the reaction commands."""
         if payload.channel_id == const.ID_CANAL_VALIDACION_4K \
                 or payload.channel_id == const.ID_CANAL_VALIDACION_7K \
-                or payload.channel_id == const.ID_CANAL_VALIDACION_ET:
+                or payload.channel_id == const.ID_CANAL_VALIDACION_ET  \
+                or payload.channel_id == const.ID_CANAL_VALIDACION_TAIKO:
             await self.handle_reaction_command(payload)
 
     async def handle_reaction_command(self, payload):

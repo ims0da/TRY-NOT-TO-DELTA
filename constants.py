@@ -18,7 +18,7 @@ OSU_API_ID = 23233
 OSU_API_SECRET = "YGFkQwXUhEUguguxtlx5wwP1lTvF84BeXJSeGAL2"
 OSU_API_V1 = "45895e1edbf1b32a8eca532d52f9b68f3f8fb962"
 
-LOG_CLEAR_CHANNEL_ID = 1122291325321097407
+LOG_CLEAR_CHANNEL_ID = 1123012660275990599
 
 AYUDA_COMANDOS = {
     "/players": "Muestra la leaderboard del modo elegido con los puntos actuales.",
@@ -38,5 +38,6 @@ AYUDA_COMANDOS_ENG = {
     "/clear": "Adds the points of the map that you've cleared.",
     "/ayuda": "Shows this command. (Default Language: Spanish)",
     "/requestmap": "ENGLISH: Request a map for the selected mode.",
-    "/register": "Register into the leaderboard to start in TRY NOT TO DELTA."
+    "/register": "Register into the leaderboard to start in TRY NOT TO DELTA.",
+    "/played": "/playername /mode  (4k,7k,et,taiko) Shows the challenges played of such player in the selected mode."
 }

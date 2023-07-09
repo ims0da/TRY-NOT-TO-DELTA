@@ -6,8 +6,6 @@ from PIL import Image
 RES_REFERENCIA_X = 2560
 RES_REFERENCIA_Y = 1440
 
-# Codigo incompleto. Utiliza pytesseract para sacar el nombre del jugador de una imagen. (puede servir para mas cosas)
-# - Nupi.
 
 def sacar_nombre_jugador(ancho, alto, imagen):
     coord_punto_inicio_region_x = 10 / RES_REFERENCIA_X
