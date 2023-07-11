@@ -254,11 +254,12 @@ class TNTDBotCommands(CommandTree):
                 # Depending on the mode, the query will be different.
                 modo = fnc.modo_check(modo, "7k", "4k", "taiko")
                 if modo == "7k":
-                    results = fnc.sql("query", "SELECT NOMBRE, puntos7k FROM public.bd_players")
+                    results = fnc.sql("query", "SELECT NOMBRE, puntos7k FROM public.bd_players WHERE puntos7k > 0")
                 elif modo == "4k":
-                    results = fnc.sql("query", "SELECT NOMBRE, puntos4k FROM public.bd_players")
+                    results = fnc.sql("query", "SELECT NOMBRE, puntos4k FROM public.bd_players WHERE puntos4k > 0")
                 elif modo == "taiko":
-                    results = fnc.sql("query", "SELECT NOMBRE, puntostaiko FROM public.bd_players")
+                    results = fnc.sql("query", "SELECT NOMBRE, puntostaiko FROM public.bd_players WHERE puntostaiko > 0"
+                                      )
                 else:
                     results = None
             except exc.IncorrectModeError:
