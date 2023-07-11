@@ -80,8 +80,7 @@ def download_osu_file(url, diff):
 
 
 def process_map(map_id, map_link, map_diff):
-    # Todavía no se bien como utilizarlo. Es parte del programa que sacaba los hashes de todos los mapas de la db y los
-    # guardaba en la columna nueva. - Nupi
+    # Funcion que itera sobre todos los mapas de la base de datos y les calcula el hash. - Nupi
     try:
         osu_file_content = download_osu_file(map_link, map_diff)
         if map_link.startswith("https://osu.ppy.sh/beatmapsets"):
@@ -96,6 +95,7 @@ def process_map(map_id, map_link, map_diff):
 
 
 def download_discord(url, diff):
+    # Funcion que sirve para descargar los mapas de osu desde un link de discord. - Nupi
     response = requests.get(url)
     if response.status_code != 200:
         raise Exception("Error downloading file from discord")
@@ -125,9 +125,9 @@ def osu_ppy_get_md5(url):
     return osu_hash
 
 
-# Esta funcion busca el archivo .osu dentro del .osz de la dificultad escogida. (por eso es importante poner las
-# dificultados sin corchetes y exactamente igual que en el mapa.) - Nupi
 def search_osu_in_osz(osz_zip, diff: str):
+    # Esta funcion busca el archivo .osu dentro del .osz de la dificultad escogida. (por eso es importante poner las
+    # dificultados sin corchetes y exactamente igual que en el mapa.) - Nupi
     osu_file_name = None
     diff = f"[{diff}]"
     for file_name in osz_zip.namelist():
@@ -194,17 +194,17 @@ def download_mega(url, diff):
     return search_osu_in_osz(osz_zip, diff)
 
 
-# Obtener el hash para los mapas de osu descargados de otras fuentes (como google drive etc. NO ES NECESARIO PARA MAPAS
-# OFICIALES DE OSU) - Nupi
 def calculate_osu_map_hash(file):
+    # Obtener el hash para los mapas de osu descargados de otras fuentes (como google drive etc. NO ES NECESARIO PARA
+    # MAPAS OFICIALES DE OSU) - Nupi
     with file as db:
         data = db.read()
         hash = hashlib.md5(data).hexdigest()
         return hash
 
 
-# Esta funcion principalmente abre el archivo .osu y busca la metadata del mapa. - Nupi
 def get_osu_map_metadata(osu_map):
+    # Esta funcion principalmente abre el archivo .osu y busca la metadata del mapa. - Nupi
     metadata = {}
 
     osu_map_text = osu_map.read().decode("utf-8")
@@ -214,6 +214,7 @@ def get_osu_map_metadata(osu_map):
     for line in lines:
         line = line.strip()
 
+        # Este bloque de codigo busca cuando empieza la linea de metadata y cuando termina. - Nupi
         if line == "[Metadata]":
             in_metadata_section = True
         elif line == "":
@@ -244,6 +245,8 @@ def check_clear(clear):
 def get_db_data(r):
     """Output: modo, id_mapa, nombre, mods, clear"""
     # Gracias shiro
+    # Esta funcion sirve para obtener los datos de la base de datos donde el hash sea igual al hash de la replay.
+    # si esta repetido se obtienen 2 datos o mas en una lista y se itera sobre ellos. - Nupi
     modo = sql("query", "SELECT modo FROM public.bd_mapas WHERE hash in "
                "(SELECT hash from public.bd_mapas where hash = %s group by hash having count(*) > 1)", r.beatmap_hash)
     id_mapa = sql("query", "SELECT id FROM public.bd_mapas WHERE hash in "
@@ -259,7 +262,8 @@ def get_db_data(r):
 
 
 def clear_map(modo, nombre, id_mapa, clear):
-    # Funcion que simplemente inserta los valores obtenidos en la db. - Nupi
+    # Funcion que simplemente inserta los valores obtenidos en la db y antes de eso chequea si ya se ha hecho ese
+    # clear. - Nupi
     result = sql(
         "query",
         "SELECT count(*) FROM public.submissions WHERE modo = %s AND nombre = %s AND id_mapa = %s",
@@ -279,6 +283,7 @@ def clear_map(modo, nombre, id_mapa, clear):
 
 
 def get_osu_username_from_profile(profile_link):
+    # Funcion que parte el link de un perfil de osu por "/" y devuelve el id de usuario. - Nupi
     parts = profile_link.split("/")
     if len(parts) >= 4:
         username = parts[4]
@@ -287,12 +292,14 @@ def get_osu_username_from_profile(profile_link):
         return None
 
 
-# Procesa los requerimientos del mapa segun los datos de la replay. (sentios libres de modificarlo para modularizar el
-# codigo, yo lo hice asi porque me parecio mas facil) - Nupi
 def process_requeriments(replay_data, modo, id, nombre, mods, clear):
     """map_requeriments: list of the requeriments of the map.
     replay_data: replay data."""
+    # Procesa los requerimientos del mapa segun los datos de la replay. (sentios libres de modificarlo para modularizar
+    # el codigo, yo lo hice asi porque me parecio mas facil). Esta es la funcion mas larga y compleja. - Nupi
 
+    # Este bloque de codigo es para obtener los datos y ponerlos en un formato especifico. - Nupi
+    # Lo unico que hago es acceder a datos en distintas listas simplemente por la forma en la que se guardan en la db.
     modo = modo[0][0]
     id = id[0][0]
     mods = mods[0]
@@ -305,6 +312,8 @@ def process_requeriments(replay_data, modo, id, nombre, mods, clear):
     id = str(id).strip()
     nombre = nombre.strip()
     clear = clear.strip()
+
+    # Aqui obtengo los datos de la replay y los pongo en variables. - Nupi
 
     r = replay_data
 
@@ -322,14 +331,19 @@ def process_requeriments(replay_data, modo, id, nombre, mods, clear):
     unsplitted_user_mods = user_mods.split("|")
     splitted_mods = [mod.lower() for mod in unsplitted_user_mods]
 
+    # Esto es un check para ver si el usuario tiene nightcore y si lo tiene lo cambia por doubletime. (como es lo
+    # mismo doubletime que nightcore pues asi nos ahorramos problemas). - Nupi
     if "nightcore" in splitted_mods:
         splitted_mods.remove("nightcore")
         splitted_mods.append("doubletime")
 
+    # Esto chequea si el clear es de acc de combo o de lo que sea para hacer una cosa u otra.
     clear_type = check_clear(clear).lower()
 
     user_mods = user_mods.lower()
 
+    # Esto es el bloque de ifs mas grande de mi vida sirve para formatear todos los mods a una forma especifica para
+    # que se puedan comparar con los mods de la db. - Nupi
     if "nm" in mods:
         mods = [mod.replace("nm", "nomod") for mod in mods]
     if "hr" in mods:
@@ -354,11 +368,15 @@ def process_requeriments(replay_data, modo, id, nombre, mods, clear):
 
     # Check para comprobar que el usuario haya hecho el clear con los mods que dijo que uso. - Nupi
     if mods != splitted_mods:
+        # Si se raisea esto, hay un for loop que vuelve a ejecutar esta funcion las veces que se repita el mapa en la db
+        # así podemos chequear diferentes clear requeriments.
         raise exc.ModsDontMatchError()
 
+    # Aqui es donde utilizo lo del clear_type. (que simplemente devolvia una string con el tipo de clear que era).
     if clear_type == "accuracy":
         # Aqui creo clear acc para poder trabajar con el valor de clear sin el %. - Nupi
         clear_acc = float(clear.strip("%"))
+        # Dependiendo del modo calculo la accuracy de una forma u otra. - Nupi
         if modo == "standard":
             accuracy = standard_accuracy_calculation_formula(count_300, count_100, count_50, misses)
         elif modo == "4k" or modo == "7k":
@@ -405,9 +423,9 @@ def process_requeriments(replay_data, modo, id, nombre, mods, clear):
 
 
 # ACC CALCULATIONS
-# Esto está aqui por si acaso hace falta algún dia. - Nupi
 def standard_accuracy_calculation_formula(three_hundred_count, one_hundred_count, fifty_count, miss_count):
     """Standard accuracy calculation formula."""
+    # Esto está aqui por si acaso hace falta algún dia. - Nupi
     formula = (
         (three_hundred_count * 300) + (one_hundred_count * 100) + (fifty_count * 50)
         ) / (

@@ -24,7 +24,7 @@ class TNTDBotCommands(CommandTree):
             await interaction.response.defer(ephemeral=True)
             r = Replay.from_file(BytesIO(await replay.read()))
 
-            # Find the beatmap in the database with the replay's hash
+            # Encontrar el mapa en la base de datos con la funcion get_db_data y guardar los datos en variables (listas)
             try:
                 modo, id_mapa, nombre, mods, clear = fnc.get_db_data(r)
             except IndexError:
@@ -38,6 +38,8 @@ class TNTDBotCommands(CommandTree):
                                                clear=clear)
 
             except exc.ModsDontMatchError:
+                # Esta es la logica que explico en process_requeriments. La que detecta si hay mas de un mapa y si los
+                # hay se chequea el clear todas las veces que se repita.
                 for i in range(len(id_mapa)):
                     modo.pop(0)
                     id_mapa.pop(0)
@@ -60,7 +62,7 @@ class TNTDBotCommands(CommandTree):
                 color=discord.Color.green()
             )
             channel = client.get_channel(const.LOG_CLEAR_CHANNEL_ID)
-            # Creates the message to be sent in the log channel
+            # Crea el mensaje a ser enviado en el log channel
             msg = fnc.crear_mensaje_cmd_clear(interaction, r.username, id_mapa, clear)
             embed_msg = discord.Embed(
                 title="Comando clear ejecutado",
@@ -70,12 +72,16 @@ class TNTDBotCommands(CommandTree):
             await channel.send(embed=embed_msg)
             await interaction.followup.send(embed=embed, ephemeral=True)
 
+        # Esta linea de codigo sirve para que el comando solo se pueda ejecutar si el rol o el usuario tiene permisos
+        # de administrados.
         @checks.has_permissions(administrator=True)
         @self.command(name="fetchnewhash")
         async def fetchnewhash(interaction: discord.Interaction):
 
+            # Interaction.response.defer() sirve para que el bot espere durante mucho tiempo a que se ejecute el
+            # comando. Esto es necesario porque el comando tarda mucho en ejecutarse y sino el bot se queja de que
+            # el comando no se ejecuto en 3 segundos.
             await interaction.response.defer()
-            import general_functions as fnc
             import time
 
             # Sirve para obtener el hash de los mapas que no lo tienen y meterlos en la db. - Nupi
@@ -99,6 +105,7 @@ class TNTDBotCommands(CommandTree):
 
         @fetchnewhash.error
         async def fetchnewhash_error(interaction: discord.Interaction, error):
+            # Error handling para el comando fetchnewhash (por ejemplo cuando no tienes permisos de admin)
             await interaction.response.send_message("Error: " + str(error), ephemeral=True)
 
         @self.command(name="tabla")
@@ -272,6 +279,8 @@ class TNTDBotCommands(CommandTree):
                              diff: str, mods: str, clear: str):
             """Request a map to be added to the database."""
             modo = modo.lower()
+            # Esto sirve para chequear que el mod introducido por el usuario este bien escrito. Si no podria dar
+            # problemas.
             for mod in mods.split(", "):
                 if mod not in const.MODS:
                     await interaction.response.send_message("Mod incorrecto.", ephemeral=True)
@@ -330,8 +339,10 @@ class TNTDBotCommands(CommandTree):
         @self.command(name="register")
         async def register(interaction: discord.Interaction, profile_link: str):
             """Register yourself in the database."""
+            # Se llama a la funcion para obtener el id del usuario de osu.
             user_id = fnc.get_osu_username_from_profile(profile_link)
             url = rf"https://osu.ppy.sh/api/get_user?k={const.OSU_API_V1}&u={user_id}"
+            # Utilizo la api para obtener el nombre de usuario a partir del id.
             response = requests.get(url)
             data = response.json()
 
@@ -344,7 +355,6 @@ class TNTDBotCommands(CommandTree):
                 return await interaction.response.send_message(embed=embed, ephemeral=True)
 
             username = data[0]["username"]
-            print(username)
 
             fnc.sql("insert",
                     "INSERT INTO public.bd_players (nombre, puntos4k, puntos7k, puntostaiko) "
