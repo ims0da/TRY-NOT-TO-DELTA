@@ -232,23 +232,59 @@ def get_osu_map_metadata(osu_map):
 
 def check_clear(clear):
     # re.search busca un patron en un string. En este caso, busca un numero seguido de un % (ej: 99%) - Nupi
-    if re.search(r"\d+%", clear):
+    if clear.endswith("%"):
         return "accuracy"
     # re.match busca un patron en un string. En este caso, busca un numero de 1 a 6 digitos (ej: 999999) - Nupi
-    elif re.match(r"\d{3}k", clear) or re.match(r"\d{6}", clear) or \
-            (re.match(r"\d{1,6}", clear) and int(clear)):
+    elif re.match(r"\d{3}k", clear):
         return "score"
     else:
         return clear
 
 
+def get_db_data(r):
+    """Output: modo, id_mapa, nombre, mods, clear"""
+    # Gracias shiro
+    modo = sql("query", "SELECT modo FROM public.bd_mapas WHERE hash in "
+               "(SELECT hash from public.bd_mapas where hash = %s group by hash having count(*) > 1)", r.beatmap_hash)
+    id_mapa = sql("query", "SELECT id FROM public.bd_mapas WHERE hash in "
+                  "(SELECT hash from public.bd_mapas where hash = %s group by hash having count(*) > 1)", r.beatmap_hash
+                  )
+    nombre = r.username
+    mods = sql("query", "SELECT mods FROM public.bd_mapas WHERE hash in "
+               "(SELECT hash from public.bd_mapas where hash = %s group by hash having count(*) > 1)", r.beatmap_hash)
+    clear = sql("query", "SELECT clear FROM public.bd_mapas WHERE hash in "
+                "(SELECT hash from public.bd_mapas WHERE hash = %s group by hash having count(*) > 1)", r.beatmap_hash)
+
+    return modo, id_mapa, nombre, mods, clear
+
+
 def clear_map(modo, nombre, id_mapa, clear):
     # Funcion que simplemente inserta los valores obtenidos en la db. - Nupi
-    sql(
-        "insert",
-        "INSERT INTO public.submissions (modo, nombre, id_mapa, clear) VALUES (%s, %s, %s, %s)",
-        modo, nombre, id_mapa, clear
+    result = sql(
+        "query",
+        "SELECT count(*) FROM public.submissions WHERE modo = %s AND nombre = %s AND id_mapa = %s",
+        modo, nombre, id_mapa
     )
+    if not result[0][0] == 0:
+        raise Exception("Map already cleared")
+
+    try:
+        sql(
+            "insert",
+            "INSERT INTO public.submissions (modo, nombre, id_mapa, clear) VALUES (%s, %s, %s, %s)",
+            modo, nombre, id_mapa, clear
+        )
+    except Exception as e:
+        raise Exception(f"Error inserting clear into database: {e}")
+
+
+def get_osu_username_from_profile(profile_link):
+    parts = profile_link.split("/")
+    if len(parts) >= 4:
+        username = parts[4]
+        return username
+    else:
+        return None
 
 
 # Procesa los requerimientos del mapa segun los datos de la replay. (sentios libres de modificarlo para modularizar el
@@ -256,6 +292,19 @@ def clear_map(modo, nombre, id_mapa, clear):
 def process_requeriments(replay_data, modo, id, nombre, mods, clear):
     """map_requeriments: list of the requeriments of the map.
     replay_data: replay data."""
+
+    modo = modo[0][0]
+    id = id[0][0]
+    mods = mods[0]
+    mods = list(mods)
+    mods = [mod.strip() for mod in mods]
+    mods = [mod.lower() for mod in mods]
+    clear = clear[0][0]
+
+    modo = modo.strip()
+    id = str(id).strip()
+    nombre = nombre.strip()
+    clear = clear.strip()
 
     r = replay_data
 
@@ -267,25 +316,52 @@ def process_requeriments(replay_data, modo, id, nombre, mods, clear):
     misses = r.count_miss
     score = r.score
     user_mods = r.mods.name
+
     # Esto es para que los mods esten en minusculas y sin ningun caracter extraño y que esten divididos en una lista.
     # - Nupi
     unsplitted_user_mods = user_mods.split("|")
     splitted_mods = [mod.lower() for mod in unsplitted_user_mods]
 
+    if "nightcore" in splitted_mods:
+        splitted_mods.remove("nightcore")
+        splitted_mods.append("doubletime")
+
     clear_type = check_clear(clear).lower()
 
-    mods = mods.lower()
+    user_mods = user_mods.lower()
+
+    if "nm" in mods:
+        mods = [mod.replace("nm", "nomod") for mod in mods]
+    if "hr" in mods:
+        mods = [mod.replace("hr", "hardrock") for mod in mods]
+    if "hd" in mods:
+        mods = [mod.replace("hd", "hidden") for mod in mods]
+    if "dt" in mods or "nc" in mods:
+        mods = [mod.replace("dt", "doubletime") for mod in mods]
+    if "ez" in mods:
+        mods = [mod.replace("ez", "easy") for mod in mods]
+    if "ht" in mods:
+        mods = [mod.replace("ht", "halftime") for mod in mods]
+    if "fl" in mods:
+        mods = [mod.replace("fl", "flashlight") for mod in mods]
+    if "rx" in mods:
+        mods = [mod.replace("rx", "relax") for mod in mods]
+    if "v2" in mods:
+        mods = [mod.replace("v2", "scorev2") for mod in mods]
+    if "nf" in mods:
+        mods = [mod.replace("nf", "nofail") for mod in mods]
+    # https://i.kym-cdn.com/entries/icons/facebook/000/032/492/cover3.jpg - Nupi
 
     # Check para comprobar que el usuario haya hecho el clear con los mods que dijo que uso. - Nupi
-    if splitted_mods != mods.split(" "):
-        return "Mods no coinciden"
+    if mods != splitted_mods:
+        raise exc.ModsDontMatchError()
 
     if clear_type == "accuracy":
         # Aqui creo clear acc para poder trabajar con el valor de clear sin el %. - Nupi
         clear_acc = float(clear.strip("%"))
         if modo == "standard":
             accuracy = standard_accuracy_calculation_formula(count_300, count_100, count_50, misses)
-        elif modo == "mania":
+        elif modo == "4k" or modo == "7k":
             accuracy = mania_accuracy_calculation_formula(count_320, count_300, count_200, count_100, count_50, misses)
         elif modo == "taiko":
             accuracy = taiko_accuracy_calculation_formula(count_300, count_100, misses)

@@ -17,6 +17,10 @@ RANKED_CHANNEL_ID = 1123012775875186698
 OSU_API_ID = 23233
 OSU_API_SECRET = "YGFkQwXUhEUguguxtlx5wwP1lTvF84BeXJSeGAL2"
 OSU_API_V1 = "45895e1edbf1b32a8eca532d52f9b68f3f8fb962"
+MODS = ["NM", "HD", "HR", "DT", "EZ", "HT", "NC", "DT", "FL", "PF", "SD", "RX", "V2",
+        "nomod", "hidden", "hardrock", "doubletime", "nightcore", "easy", "halftime", "doubletime", "flashlight",
+        "perfect",
+        "suddendeath", "relax", "scorev2"]
 
 LOG_CLEAR_CHANNEL_ID = 1123012660275990599
 

@@ -7,8 +7,10 @@ import general_functions as fnc
 import math
 import bot_exceptions as exc
 import typing
+from discord.app_commands import checks
 from osrparse import Replay
 from io import BytesIO
+import requests
 
 
 # COMMANDS
@@ -16,29 +18,47 @@ class TNTDBotCommands(CommandTree):
     def __init__(self, client):
         super().__init__(client)
 
-        # TODO hacer que clear funcione con osrparse
-        # TODO testing de clear y requestmap
         @self.command(name="clear")
         async def clear(interaction: discord.Interaction, replay: discord.Attachment):
             """Clears a map and adds the points to the player's score."""
+            await interaction.response.defer(ephemeral=True)
             r = Replay.from_file(BytesIO(await replay.read()))
 
             # Find the beatmap in the database with the replay's hash
-            modo = fnc.sql("query", "SELECT modo FROM public.bd_mapas WHERE hash = %s", r.beatmap_hash)
-            id_mapa = fnc.sql("query", "SELECT id FROM public.bd_mapas WHERE hash = %s", r.beatmap_hash)
-            nombre = fnc.sql("query", "SELECT nombre FROM public.bd_mapas WHERE hash = %s", r.beatmap_hash)
-            mods = fnc.sql("query", "SELECT mods FROM public.bd_mapas WHERE hash = %s", r.beatmap_hash)
-            clear = fnc.sql("query", "SELECT clear FROM public.bd_mapas WHERE hash = %s", r.beatmap_hash)
+            try:
+                modo, id_mapa, nombre, mods, clear = fnc.get_db_data(r)
+            except IndexError:
+                embed = discord.Embed(title="Error", description="Map not found in database.", color=discord.Color.red()
+                                      )
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                return
 
-            fnc.process_requeriments(replay_data=r, modo=modo, id=id_mapa, nombre=nombre, mods=mods, clear=clear)
+            try:
+                msg = fnc.process_requeriments(replay_data=r, modo=modo, id=id_mapa, nombre=nombre, mods=mods,
+                                               clear=clear)
+
+            except exc.ModsDontMatchError:
+                for i in range(len(id_mapa)):
+                    modo.pop(0)
+                    id_mapa.pop(0)
+                    mods.pop(0)
+                    clear.pop(0)
+                    try:
+                        msg = fnc.process_requeriments(replay_data=r, modo=modo, id=id_mapa, nombre=nombre, mods=mods,
+                                                       clear=clear)
+                    except IndexError:
+                        continue
+
+            except Exception as e:
+                embed = discord.Embed(title="Error", description=f"{e}", color=discord.Color.red())
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                return
 
             embed = discord.Embed(
-                title="Your play has been sent!",
-                description="Please, be patient.",
+                title="Your clear has been accepted!",
+                description="The points have been added to your account.",
                 color=discord.Color.green()
             )
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-
             channel = client.get_channel(const.LOG_CLEAR_CHANNEL_ID)
             # Creates the message to be sent in the log channel
             msg = fnc.crear_mensaje_cmd_clear(interaction, r.username, id_mapa, clear)
@@ -48,6 +68,38 @@ class TNTDBotCommands(CommandTree):
                 color=discord.Color.blue()
             )
             await channel.send(embed=embed_msg)
+            await interaction.followup.send(embed=embed, ephemeral=True)
+
+        @checks.has_permissions(administrator=True)
+        @self.command(name="fetchnewhash")
+        async def fetchnewhash(interaction: discord.Interaction):
+
+            await interaction.response.defer()
+            import general_functions as fnc
+            import time
+
+            # Sirve para obtener el hash de los mapas que no lo tienen y meterlos en la db. - Nupi
+
+            maps = fnc.sql("query", "SELECT id, link, diff FROM bd_mapas")
+
+            for map in maps:
+                map_id = map[0]
+                map_link = map[1]
+                map_link = map_link.strip()
+                map_diff = map[2]
+                map_diff = map_diff.strip()
+                if map_diff.startswith("["):
+                    map_diff = map_diff.strip("[")
+                if map_diff.endswith("]"):
+                    map_diff = map_diff.strip("]")
+
+                fnc.process_map(map_id, map_link, map_diff)
+                await interaction.followup.send("Mapa procesado.", ephemeral=True)
+                time.sleep(0.7)
+
+        @fetchnewhash.error
+        async def fetchnewhash_error(interaction: discord.Interaction, error):
+            await interaction.response.send_message("Error: " + str(error), ephemeral=True)
 
         @self.command(name="tabla")
         async def tabla(interaction: discord.Interaction, modo: str):
@@ -55,7 +107,7 @@ class TNTDBotCommands(CommandTree):
 
             modo = modo.lower()
             try:
-                modo = fnc.modo_check(modo, "4k", "7k", "et", "etterna", "taiko")
+                modo = fnc.modo_check(modo, "4k", "7k", "taiko")
                 print(modo)
             except exc.IncorrectModeError:
                 await interaction.response.send_message("modo incorrecto")
@@ -122,7 +174,7 @@ class TNTDBotCommands(CommandTree):
             """Gives a list of all the played maps of the player in the selected mode."""
             modo = modo.lower()
             try:
-                modo = fnc.modo_check(modo, "4k", "7k", "et", "etterna", "taiko")
+                modo = fnc.modo_check(modo, "4k", "7k", "taiko")
                 print(modo)
             except exc.IncorrectModeError:
                 await interaction.response.send_message("modo incorrecto")
@@ -187,18 +239,14 @@ class TNTDBotCommands(CommandTree):
                     except asyncio.TimeoutError:
                         break
 
-        # :D
         @self.command(name="players")
         async def players(interaction: discord.Interaction, modo: str):
             """Shows the current players in the database of the selected mode."""
             modo = modo.lower()
             try:
                 # Depending on the mode, the query will be different.
-                modo = fnc.modo_check(modo, "etterna", "et", "7k", "4k", "taiko")
-                if modo == "et" or modo == "etterna":
-                    results = fnc.sql("query",
-                                      "SELECT NOMBRE, puntosetterna FROM public.bd_players")
-                elif modo == "7k":
+                modo = fnc.modo_check(modo, "7k", "4k", "taiko")
+                if modo == "7k":
                     results = fnc.sql("query", "SELECT NOMBRE, puntos7k FROM public.bd_players")
                 elif modo == "4k":
                     results = fnc.sql("query", "SELECT NOMBRE, puntos4k FROM public.bd_players")
@@ -214,7 +262,7 @@ class TNTDBotCommands(CommandTree):
                 headers = ["Nombre", "Puntos"]
                 # Formats the results into a table. (tabulate) is a library that does this.
                 formatted_player_list = (tabulate(sorted_results, headers, tablefmt="pipe"))
-                embed = discord.Embed(title=f"{'Etterna' if modo == 'et' else modo} player list.",
+                embed = discord.Embed(title=f"{modo} player list.",
                                       description=f"```\n{formatted_player_list}\n```",
                                       color=discord.Color.blue())
                 await interaction.response.send_message(embed=embed)
@@ -224,9 +272,13 @@ class TNTDBotCommands(CommandTree):
                              diff: str, mods: str, clear: str):
             """Request a map to be added to the database."""
             modo = modo.lower()
+            for mod in mods.split(", "):
+                if mod not in const.MODS:
+                    await interaction.response.send_message("Mod incorrecto.", ephemeral=True)
+                    return
             channel = None
             try:
-                modo = fnc.modo_check(modo, "et", "4k", "7k", "etterna", "taiko")
+                modo = fnc.modo_check(modo, "4k", "7k", "taiko")
             except exc.IncorrectModeError:
                 await interaction.response.send_message("modo incorrecto.")
             else:
@@ -276,15 +328,31 @@ class TNTDBotCommands(CommandTree):
             await interaction.response.send_message(embed=embed, file=file)
 
         @self.command(name="register")
-        async def register(interaction: discord.Interaction, nombre: str):
+        async def register(interaction: discord.Interaction, profile_link: str):
             """Register yourself in the database."""
+            user_id = fnc.get_osu_username_from_profile(profile_link)
+            url = rf"https://osu.ppy.sh/api/get_user?k={const.OSU_API_V1}&u={user_id}"
+            response = requests.get(url)
+            data = response.json()
+
+            if response.status_code != 200:
+                embed = discord.Embed(
+                    title="Error",
+                    description="**An error has occurred. Please try again later.**",
+                    color=discord.Color.red()
+                )
+                return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+            username = data[0]["username"]
+            print(username)
+
             fnc.sql("insert",
-                    "INSERT INTO public.bd_players (nombre, puntos4k, puntos7k, puntosetterna, puntostaiko) "
-                    "VALUES (%s, 0, 0, 0, 0)",
-                    (nombre,))
+                    "INSERT INTO public.bd_players (nombre, puntos4k, puntos7k, puntostaiko) "
+                    "VALUES (%s, 0, 0, 0)",
+                    (username,))
             embed = discord.Embed(
-                title="you are registered.",
-                description="Please, remember you start at 0 points!",
+                title="You have been registered!",
+                description="Submit a play to appear in the leaderboard!",
                 color=discord.Color.green())
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
