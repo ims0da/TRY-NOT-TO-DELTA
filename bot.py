@@ -274,6 +274,60 @@ class TNTDBotCommands(CommandTree):
                                       description=f"```\n{formatted_player_list}\n```",
                                       color=discord.Color.blue())
                 await interaction.response.send_message(embed=embed)
+                # TODO paginated embeds
+                # table_rows = []
+                # for row in sorted_results:
+                #     table_rows.append(row)
+
+                # num_pages = math.ceil(len(table_rows) / 5)
+
+                # embed_list = []
+                # for page_num in range(num_pages):
+                #     start_index = page_num * 5
+                #     end_index = start_index + 5
+                #     page_rows = table_rows[start_index:end_index]
+
+                #     page_embed = discord.Embed(
+                #         title=f"Página {page_num + 1}/{num_pages}"
+                #     )
+
+                #     for row in page_rows:
+                #         page_embed.add_field(name="", value=formatted_player_list, inline=True)
+                #     embed_list.append(page_embed)
+                # index = 0
+                # try:
+                #     await interaction.followup.send(embed=embed_list[index])
+                # except IndexError:
+                #     await interaction.followup.send("Map list is empty.")
+
+                # canal = interaction.channel_id
+
+                # message_history = client.get_channel(canal).history(limit=1)
+                # last_message = message_history.ag_frame.f_locals.get('self').last_message
+
+                # await last_message.add_reaction('⬅️')
+                # await last_message.add_reaction('➡️')
+
+                # def check(reaction, user):
+                #     return user == interaction.user and str(reaction.emoji) in ['⬅️', '➡️']
+
+                # while True:
+                #     try:
+                #         reaction, _ = await client.wait_for('reaction_add', timeout=60.0, check=check)
+
+                #         if str(reaction.emoji) == '⬅️':
+                #             index -= 1
+                #             if index < 0:
+                #                 index = len(embed) - 1
+                #         elif str(reaction.emoji) == '➡️':
+                #             index += 1
+                #             if index >= len(embed):
+                #                 index = 0
+
+                #         await last_message.edit(embed=embed[index])
+                #         await last_message.remove_reaction(reaction, interaction.user)
+                #     except asyncio.TimeoutError:
+                #         break
 
         @self.command(name="requestmap")
         async def requestmap(interaction: discord.Interaction, modo: str, puntos: int, link: str,
