@@ -7,6 +7,15 @@ ID_CANAL_VALIDACION_TAIKO = 1125068037951848489
 RANKED_CHANNEL_ID = 1122290917206937641
 
 LOG_CLEAR_CHANNEL_ID = 1122291325321097407
+WELCOME_CHANNEL_ID = 1123012188840403025
+ROWS_PER_PAGE = 8
+OSU_API_ID = 23233
+OSU_API_SECRET = "YGFkQwXUhEUguguxtlx5wwP1lTvF84BeXJSeGAL2"
+OSU_API_V1 = "45895e1edbf1b32a8eca532d52f9b68f3f8fb962"
+MODS = ["NM", "HD", "HR", "DT", "EZ", "HT", "NC", "DT", "FL", "PF", "SD", "RX", "V2",
+        "nomod", "hidden", "hardrock", "doubletime", "nightcore", "easy", "halftime", "doubletime", "flashlight",
+        "perfect",
+        "suddendeath", "relax", "scorev2"]
 
 AYUDA_COMANDOS = {
     "/players": "Muestra la leaderboard del modo elegido con los puntos actuales.",
@@ -15,8 +24,8 @@ AYUDA_COMANDOS = {
     "/ayuda": "Muestra este comando. (Default Language: Spanish)",
     "/requestmap": "Requestea un mapa o pack el cual debe ser aprobado por playtesters.",
     "/register": "Registrate en la leaderboard para poder empezar en TRY NOT TO DELTA.",
-    "/played": "/nombredelplayer /modo  (4k,7k,et,taiko) muestra el historial de desafios  de el jugador elegido en dicho modo."
-
+    "/played": "/nombredelplayer /modo (4k,7k,et,taiko) muestra el historial de desafios de el jugador elegido en dicho"
+               " modo."
 }
 
 AYUDA_COMANDOS_ENG = {
