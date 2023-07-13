@@ -249,16 +249,23 @@ def get_db_data(r):
     # si esta repetido se obtienen 2 datos o mas en una lista y se itera sobre ellos. - Nupi
     modo = sql("query", "SELECT modo FROM public.bd_mapas WHERE hash in "
                "(SELECT hash from public.bd_mapas where hash = %s group by hash having count(*) > 1)", r.beatmap_hash)
+    if modo == []:
+        modo = sql("query", "SELECT modo FROM public.bd_mapas WHERE hash = %s", r.beatmap_hash)
     id_mapa = sql("query", "SELECT id FROM public.bd_mapas WHERE hash in "
                   "(SELECT hash from public.bd_mapas where hash = %s group by hash having count(*) > 1)", r.beatmap_hash
                   )
-    nombre = r.username
+    if id_mapa == []:
+        id_mapa = sql("query", "SELECT id FROM public.bd_mapas WHERE hash = %s", r.beatmap_hash)
+    nombre_usuario = r.username
     mods = sql("query", "SELECT mods FROM public.bd_mapas WHERE hash in "
                "(SELECT hash from public.bd_mapas where hash = %s group by hash having count(*) > 1)", r.beatmap_hash)
+    if mods == []:
+        mods = sql("query", "SELECT mods FROM public.bd_mapas WHERE hash = %s", r.beatmap_hash)
     clear = sql("query", "SELECT clear FROM public.bd_mapas WHERE hash in "
                 "(SELECT hash from public.bd_mapas WHERE hash = %s group by hash having count(*) > 1)", r.beatmap_hash)
-
-    return modo, id_mapa, nombre, mods, clear
+    if clear == []:
+        clear = sql("query", "SELECT clear FROM public.bd_mapas WHERE hash = %s", r.beatmap_hash)
+    return modo, id_mapa, nombre_usuario, mods, clear
 
 
 def clear_map(modo, nombre, id_mapa, clear):
@@ -300,6 +307,8 @@ def process_requeriments(replay_data, modo, id, nombre, mods, clear):
 
     # Este bloque de codigo es para obtener los datos y ponerlos en un formato especifico. - Nupi
     # Lo unico que hago es acceder a datos en distintas listas simplemente por la forma en la que se guardan en la db.
+    print(modo)
+    print(modo[0][0])
     modo = modo[0][0]
     id = id[0][0]
     mods = mods[0]
@@ -314,6 +323,12 @@ def process_requeriments(replay_data, modo, id, nombre, mods, clear):
     clear = clear.strip()
 
     # Aqui obtengo los datos de la replay y los pongo en variables. - Nupi
+
+    nombre_db = sql("query", "SELECT nombre FROM public.bd_players WHERE nombre = %s", nombre)
+    print(nombre_db)
+
+    if nombre_db == []:
+        raise exc.PlayerNotFoundError(f"Player {nombre} not found in database")
 
     r = replay_data
 

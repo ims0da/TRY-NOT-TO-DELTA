@@ -12,6 +12,7 @@ from osrparse import Replay
 from io import BytesIO
 import requests
 
+
 # COMMANDS
 class TNTDBotCommands(CommandTree):
     def __init__(self, client):
@@ -25,7 +26,7 @@ class TNTDBotCommands(CommandTree):
 
             # Encontrar el mapa en la base de datos con la funcion get_db_data y guardar los datos en variables (listas)
             try:
-                modo, id_mapa, nombre, mods, clear = fnc.get_db_data(r)
+                modo, id_mapa, nombre_usuario, mods, clear = fnc.get_db_data(r)
             except IndexError:
                 embed = discord.Embed(title="Error", description="Map not found in database.", color=discord.Color.red()
                                       )
@@ -33,8 +34,14 @@ class TNTDBotCommands(CommandTree):
                 return
 
             try:
-                msg = fnc.process_requeriments(replay_data=r, modo=modo, id=id_mapa, nombre=nombre, mods=mods,
+                msg = fnc.process_requeriments(replay_data=r, modo=modo, id=id_mapa, nombre=nombre_usuario, mods=mods,
                                                clear=clear)
+
+            except exc.PlayerNotFoundError:
+                embed = discord.Embed(title="Error", description="Player not found in database.",
+                                      color=discord.Color.red())
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                return
 
             except exc.ModsDontMatchError:
                 # Esta es la logica que explico en process_requeriments. La que detecta si hay mas de un mapa y si los
@@ -45,8 +52,8 @@ class TNTDBotCommands(CommandTree):
                     mods.pop(0)
                     clear.pop(0)
                     try:
-                        msg = fnc.process_requeriments(replay_data=r, modo=modo, id=id_mapa, nombre=nombre, mods=mods,
-                                                       clear=clear)
+                        msg = fnc.process_requeriments(replay_data=r, modo=modo, id=id_mapa, nombre=nombre_usuario,
+                                                       mods=mods, clear=clear)
                     except IndexError:
                         continue
 
