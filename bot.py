@@ -12,7 +12,6 @@ from osrparse import Replay
 from io import BytesIO
 import requests
 
-
 # COMMANDS
 class TNTDBotCommands(CommandTree):
     def __init__(self, client):
@@ -110,6 +109,7 @@ class TNTDBotCommands(CommandTree):
             modo = modo.lower()
             try:
                 modo = fnc.modo_check(modo, "4k", "7k", "taiko")
+
                 print(modo)
             except exc.IncorrectModeError:
                 await interaction.response.send_message("modo incorrecto")
