@@ -425,6 +425,10 @@ class TNTDBotCommands(CommandTree):
 
 
 class TNTDBot(discord.Client):
+    def __init__(self, logger, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.logger = logger
+
     async def on_ready(self):
         print(f'{self.user.name} has connected to Discord!')
         try:
@@ -475,3 +479,11 @@ class TNTDBot(discord.Client):
         await output_channel.send(
             f"Se ha rankeado el mapa de {modo} **{metadata['Artist']} - {metadata['Title']} - {diff}** con el "
             f"requerimiento de: **{clear}** y con el valor de **{puntos}** puntos.")
+
+    async def on_interaction(self, interaction: discord.Interaction):
+        option_list = {}
+        if "options" in interaction.data:
+            for option in interaction.data["options"]:
+                option_list[option["name"]] = option["value"]
+        option_str = ", ".join([f"{key}: {value}" for key, value in option_list.items()])
+        self.logger.info(f"User: {interaction.user} executed: {interaction.data['name']} args: [{option_str}]")
