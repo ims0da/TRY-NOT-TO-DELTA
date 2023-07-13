@@ -14,3 +14,15 @@ class ModsDontMatchError(Exception):
     """Raised when mods dont match (idk)"""
     def __str__(self) -> str:
         return "Mods don't match."
+
+
+class ClearNotAcceptedError(Exception):
+    """Raised when user's clear is not accepted."""
+    def __str__(self) -> str:
+        return "Clear not accepted."
+
+
+class MapAlreadyClearedError(Exception):
+    """Raised when inputted map is already cleared."""
+    def __str__(self) -> str:
+        return "Map already cleared."

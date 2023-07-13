@@ -57,6 +57,15 @@ class TNTDBotCommands(CommandTree):
                     except IndexError:
                         continue
 
+            except exc.MapAlreadyClearedError:
+                embed = discord.Embed(title="Error", description="Map already cleared.", color=discord.Color.red())
+                await interaction.followup.send(embed=embed, ephemeral=True)
+
+            except exc.ClearNotAcceptedError:
+                embed = discord.Embed(title="Error", description="You don't meet the requeriments of the clear.",
+                                      color=discord.Color.red())
+                await interaction.followup.send(embed=embed, ephemeral=True)
+
             embed = discord.Embed(
                 title="Your clear has been accepted!",
                 description="The points have been added to your account.",
@@ -115,7 +124,7 @@ class TNTDBotCommands(CommandTree):
 
             modo = modo.lower()
             try:
-                modo = fnc.modo_check(modo, "4k", "7k", "taiko")
+                modo = fnc.modo_checko(modo, "4k", "7k", "taiko")
 
                 print(modo)
             except exc.IncorrectModeError:

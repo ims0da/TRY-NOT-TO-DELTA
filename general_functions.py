@@ -277,7 +277,7 @@ def clear_map(modo, nombre, id_mapa, clear):
         modo, nombre, id_mapa
     )
     if not result[0][0] == 0:
-        raise Exception("Map already cleared")
+        raise exc.MapAlreadyClearedError
 
     try:
         sql(
@@ -322,13 +322,16 @@ def process_requeriments(replay_data, modo, id, nombre, mods, clear):
     nombre = nombre.strip()
     clear = clear.strip()
 
+    if clear == "SS":
+        clear = "100%"
+
     # Aqui obtengo los datos de la replay y los pongo en variables. - Nupi
 
     nombre_db = sql("query", "SELECT nombre FROM public.bd_players WHERE nombre = %s", nombre)
     print(nombre_db)
 
     if nombre_db == []:
-        raise exc.PlayerNotFoundError(f"Player {nombre} not found in database")
+        raise exc.PlayerNotFoundError
 
     r = replay_data
 
@@ -351,6 +354,10 @@ def process_requeriments(replay_data, modo, id, nombre, mods, clear):
     if "nightcore" in splitted_mods:
         splitted_mods.remove("nightcore")
         splitted_mods.append("doubletime")
+
+    if "mirror" in splitted_mods:
+        splitted_mods.remove("mirror")
+        splitted_mods.append("nomod")
 
     # Esto chequea si el clear es de acc de combo o de lo que sea para hacer una cosa u otra.
     clear_type = check_clear(clear).lower()
@@ -404,7 +411,7 @@ def process_requeriments(replay_data, modo, id, nombre, mods, clear):
         if accuracy >= clear_acc:
             clear_map(modo, nombre, id, clear)
         else:
-            return "No se ha cumplido el requerimiento de accuracy"
+            raise exc.ClearNotAcceptedError
 
     elif clear_type == "score":
         # Aqui hago un check para ver si el clear es en k (ej: 1k = 1000) y si es asi, lo convierto a un numero entero
@@ -414,27 +421,30 @@ def process_requeriments(replay_data, modo, id, nombre, mods, clear):
         if score >= clear_without_k:
             clear_map(modo, nombre, id, clear)
         else:
-            return "No se ha cumplido el requerimiento de score"
+            raise exc.ClearNotAcceptedError
 
     elif clear_type == "fc":
         if misses == 0:
             clear_map(modo, nombre, id, clear)
         else:
-            return "No se ha cumplido el requerimiento de FC"
+            raise exc.ClearNotAcceptedError
 
     # Good FC = FC solo con greats. (por favor dejad de inventaros estas nomenclaturas extrañas gracias) - Nupi
     elif clear_type == "gfc":
         if misses == 0 and count_50 == 0 and count_100 == 0 and count_300 >= 1:
             clear_map(modo, nombre, id, clear)
         else:
-            return "No se ha cumplido el requerimiento de GFC"
+            raise exc.ClearNotAcceptedError
 
     # Perfect FC = FC solo con perfects (usualmente utilizado en mapas V2) - Nupi
     elif clear_type == "pfc":
         if misses == 0 and count_50 == 0 and count_100 == 0 and count_200 == 0 and count_300 >= 1:
             clear_map(modo, nombre, id, clear)
         else:
-            return "No se ha cumplido el requerimiento de PFC"
+            raise exc.ClearNotAcceptedError
+
+    else:
+        raise Exception("Something went wrong. Please contact the developer.")
 
 
 # ACC CALCULATIONS
