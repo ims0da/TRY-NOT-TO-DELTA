@@ -51,11 +51,6 @@ class TNTDBotCommands(CommandTree):
                     except IndexError:
                         continue
 
-            except Exception as e:
-                embed = discord.Embed(title="Error", description=f"{e}", color=discord.Color.red())
-                await interaction.followup.send(embed=embed, ephemeral=True)
-                return
-
             embed = discord.Embed(
                 title="Your clear has been accepted!",
                 description="The points have been added to your account.",
